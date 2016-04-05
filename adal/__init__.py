@@ -30,6 +30,7 @@ __version__ = '0.2.0'
 from .authentication_context import AuthenticationContext
 from .token_cache import TokenCache
 from .log import LOGGING_LEVEL, set_logging_options, get_logging_options
+from .adal_error import AdalError
 
 # to avoid "No handler found" warnings.
 import logging

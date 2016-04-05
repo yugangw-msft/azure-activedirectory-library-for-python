@@ -32,7 +32,7 @@ def validate_string_param(value, name):
     if not value:
         raise ValueError("The {0} parameter is required".format(name))
 
-    if not isinstance(value, str):
+    if not isinstance(value, str) and not isinstance(value, unicode):
         raise TypeError("The {0} parameter must be of type str".format(name))
 
 def validate_user_code_info(user_code_info):
