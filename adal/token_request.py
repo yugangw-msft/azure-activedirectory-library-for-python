@@ -276,7 +276,6 @@ class TokenRequest(object):
         oauth_parameters[OAUTH2_PARAMETERS.CLIENT_SECRET] = client_secret
 
         token = self._oauth_get_token(oauth_parameters)
-        self._cache_driver.add(token)
         return token
 
     def _get_token_with_refresh_token(self, refresh_token, resource, client_secret):
