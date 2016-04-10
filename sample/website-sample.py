@@ -1,6 +1,8 @@
 import http.server
 import json
+import random
 import socketserver
+import string
 import sys
 from urllib.parse import urlparse, parse_qs
 
@@ -40,7 +42,7 @@ server_url = 'http://localhost:{}'.format(PORT)
 TEMPLATE_AUTHZ_URL = ('https://login.windows.net/{}/oauth2/authorize?'+ 
                       'response_type=code&client_id={}&redirect_uri={}&'+
                       'state={}&resource={}')
-resource = 'https://graph.windows.net/'#'https://management.core.windows.net'
+resource = '00000002-0000-0000-c000-000000000000' #aad graph
 redirect_uri = 'http://localhost:{}/getAToken'.format(PORT)
 authority_url = (sample_parameters['authorityHostUrl'] + '/' + 
                  sample_parameters['tenant'])
@@ -50,30 +52,47 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
         if self.path == '/':
             self._redirect(server_url + '/login')
         elif self.path == '/login':
-            self.state = 'mystate'
-            #todo get secret
-            self._redirect(server_url + '/auth')
-        elif self.path == '/auth':
+            auth_state = (''.join(random.SystemRandom()
+                              .choice(string.ascii_uppercase + string.digits)
+                              for _ in range(48)))
+            c = http.cookies.SimpleCookie()
+            c['auth_state'] = auth_state
             authorization_url = TEMPLATE_AUTHZ_URL.format(
                 sample_parameters['tenant'], 
                 sample_parameters['clientId'], 
                 redirect_uri, 
-                'mystate', 
+                auth_state, 
                 resource)
+            #self.send_header('Set-Cookie', c.output(header=''))
+            #self.end_headers()
             self._redirect(authorization_url)
-
         elif self.path.startswith('/getAToken'):
-            token = self._acquire_token()
-            self.send_response(200)
-            self.send_header("Content-type", "text/html")
-            self.end_headers()
-            content = ("<html><head><title>congratulations</title></head>"+
-                       "<body><p>you have got the token</p></body></html>")
-            self.wfile.write(content.encode())
+            message = None
+            is_ok = True
+            try:
+                token_response = self._acquire_token()
+                message = 'response: ' + json.dumps(token_response)
+                #Later, if the access token is expired it can be refreshed.
+                auth_context = AuthenticationContext(authority_url)
+                token_response = auth_context.acquire_token_with_refresh_token(
+                    token_response['refreshToken'],
+                    sample_parameters['clientId'],
+                    sample_parameters['clientSecret'],
+                    resource)
+                message = (message + '\nrefreshResponse:' + 
+                           json.dumps(token_response))
+            except ValueError as exp:
+                message = str(exp)
+                is_ok = False
+            self._send_response(message, is_ok)
     
     def _acquire_token(self):
         parsed = urlparse(self.path)
         code = parse_qs(parsed.query)['code'][0]
+        state = parse_qs(parsed.query)['state'][0]
+        c = cookie.SimpleCookie(self.headers["Cookie"])
+        if state != c['auth_state']:
+            raise ValueError('state does not match')
         auth_context = AuthenticationContext(authority_url)
         token = auth_context.acquire_token_with_authorization_code(
             code, 
@@ -84,12 +103,18 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
         return token
 
     def _redirect(self, url):
-        self.send_response(301)
+        self.send_response(307)
         self.send_header('Location',url)
         self.end_headers()
 
     def _create_authorization_url(self):
         TEMPLATE_AUTHZ_URL.format()
+
+    def _send_response(self, message, is_ok=True):
+        if is_ok:
+            self.send_response(200, message)
+        else:
+            self.send_error(400, message)
 
 httpd = socketserver.TCPServer(("", PORT), MyRequestHandler)
 
