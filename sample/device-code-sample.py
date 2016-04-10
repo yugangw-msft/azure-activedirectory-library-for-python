@@ -1,5 +1,6 @@
-import json
+﻿import json
 import logging
+import os
 import sys
 import adal
 
@@ -10,19 +11,18 @@ def turn_on_logging():
         'handler': handler 
     })
 
-#
-# You can override the default account information by providing a JSON file
+# You can provide account information by using a JSON file
 # with the same parameters as the sampleParameters variable below.  Either
 # through a command line argument, 'python sample.js parameters.json', or
 # specifying in an environment variable.
 # {
 #    "tenant" : "rrandallaad1.onmicrosoft.com",
-#    "authorityHostUrl" : "https://login.windows.net",
+#    "authorityHostUrl" : "https://login.microsoftonline.com",
 #    "clientId" : "",
 #    "anothertenant" : "bar.onmicrosoft.com"
 # }
 
-parameters_file = (sys.argv[1] if len(sys.argv)==2 else 
+parameters_file = (sys.argv[1] if len(sys.argv) == 2 else 
                    os.environ.get('ADAL_SAMPLE_PARAMETERS_FILE'))
 
 if parameters_file:
@@ -30,13 +30,8 @@ if parameters_file:
         parameters = f.read()
     sample_parameters = json.loads(parameters)
 else:
-    print('File {} not found, falling back to defaults: '.format(parameters_file));
-    sample_parameters = {
-        "tenant" : 'convergeTest.onmicrosoft.com',
-        "authorityHostUrl" : 'https://login.windows.net',
-        "clientId" : '',
-        "anothertenant" : ''
-    }
+    raise ValueError('Please provide parameter file with account information.')
+
 
 authority_host_url = sample_parameters['authorityHostUrl']
 authority_url = authority_host_url + '/' + sample_parameters['tenant']

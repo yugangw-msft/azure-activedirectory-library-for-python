@@ -1,5 +1,6 @@
-import http.server
+﻿import http.server
 import json
+import os
 import random
 import socketserver
 import string
@@ -9,19 +10,17 @@ from urllib.parse import urlparse, parse_qs
 from adal import AuthenticationContext
 import logging
 
-#
-# You can override the default account information by providing a JSON file
-# with the same parameters as the sampleParameters variable below.  Either
+# You can provide account information by using a JSON file. Either
 # through a command line argument, 'python sample.js parameters.json', or
-# specifying in an environment variable.
+# specifying in an environment variable
 # {
 #    "tenant" : "rrandallaad1.onmicrosoft.com",
-#    "authorityHostUrl" : "https://login.windows.net",
+#    "authorityHostUrl" : "https://login.microsoftonline.com",
 #    "clientId" : "624ac9bd-4c1c-4687-aec8-b56a8991cfb3",
 #    "clientSecret" : "verySecret=""
 # }
 
-parameters_file = (sys.argv[1] if len(sys.argv)==2 else 
+parameters_file = (sys.argv[1] if len(sys.argv) == 2 else 
                    os.environ.get('ADAL_SAMPLE_PARAMETERS_FILE'))
 
 if parameters_file:
@@ -29,13 +28,7 @@ if parameters_file:
         parameters = f.read()
     sample_parameters = json.loads(parameters)
 else:
-    print('File {} not found, falling back to defaults: '.format(parameters_file));
-    sample_parameters = {
-        'tenant' : 'rrandallaad1.onmicrosoft.com',
-        'authorityHostUrl' : 'https://login.windows.net',
-        'clientId' : '624ac9bd-4c1c-4686-aec8-b56a8991cfb3',
-        "clientSecret" : "verySecret="
-    }
+    raise ValueError('Please provide parameter file with account information.')
 
 PORT = 8088
 server_url = 'http://localhost:{}'.format(PORT)
@@ -52,9 +45,9 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
         if self.path == '/':
             self._redirect(server_url + '/login')
         elif self.path == '/login':
-            auth_state = (''.join(random.SystemRandom()
-                              .choice(string.ascii_uppercase + string.digits)
-                              for _ in range(48)))
+            auth_state = (''.join(random.SystemRandom() 
+                          .choice(string.ascii_uppercase + string.digits)
+                          for _ in range(48)))
             c = http.cookies.SimpleCookie()
             c['auth_state'] = auth_state
             authorization_url = TEMPLATE_AUTHZ_URL.format(
