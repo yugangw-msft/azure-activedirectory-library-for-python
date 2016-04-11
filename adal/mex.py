@@ -79,7 +79,7 @@ class Mex(object):
                     return_error_string += " and server response: {0}".format(resp.text)
                     try:
                         error_response = resp.json()
-                    except:
+                    except ValueError:
                         pass
 
                 raise AdalError(self._log.create_error(return_error_string), error_response)

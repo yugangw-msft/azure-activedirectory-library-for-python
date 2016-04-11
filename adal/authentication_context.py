@@ -25,6 +25,8 @@
 #
 #------------------------------------------------------------------------------
 
+import threading
+
 from .authority import Authority
 
 from . import argument
@@ -51,6 +53,7 @@ class AuthenticationContext(object):
         self._call_context = {'options': GLOBAL_ADAL_OPTIONS}
         self._token_requests_with_user_code = {}
         self.cache = cache or TokenCache()
+        self._lock = threading.RLock()
 
     @property
     def options(self):
@@ -105,7 +108,13 @@ class AuthenticationContext(object):
         token = self._acquire_token(token_func)
         return token
 
-    def acquire_token_with_authorization_code(self, authorization_code, redirect_uri, resource, client_id, client_secret):
+    def acquire_token_with_authorization_code(
+        self, 
+        authorization_code, 
+        redirect_uri, 
+        resource, 
+        client_id, 
+        client_secret):
 
         argument.validate_string_param(authorization_code, 'authorization_code')
         argument.validate_string_param(redirect_uri, 'redirect_uri')
@@ -114,8 +123,15 @@ class AuthenticationContext(object):
         argument.validate_string_param(client_secret, 'client_secret')
  
         def token_func(self):
-            token_request = TokenRequest(self._call_context, self, client_id, resource, redirect_uri)
-            token = token_request.get_token_with_authorization_code(authorization_code, client_secret)
+            token_request = TokenRequest(
+                self._call_context, 
+                self, 
+                client_id, 
+                resource, 
+                redirect_uri)
+            token = token_request.get_token_with_authorization_code(
+                authorization_code, 
+                client_secret)
             return token
 
         token = self._acquire_token(token_func)
@@ -159,8 +175,16 @@ class AuthenticationContext(object):
 
         def token_func(self):
             token_request = TokenRequest(self._call_context, self, client_id, resource)
-            self._token_requests_with_user_code[user_code_info[OAuth2DeviceCodeResponseParameters.DEVICE_CODE]] = token_request 
+
+            key = user_code_info[OAuth2DeviceCodeResponseParameters.DEVICE_CODE]
+            with self._lock:
+                self._token_requests_with_user_code[key] = token_request
+
             token = token_request.get_token_with_device_code(user_code_info)
+            
+            with self._lock:
+                self._token_requests_with_user_code.pop(key, None)
+            
             return token
 
         token = self._acquire_token(token_func)
@@ -170,9 +194,11 @@ class AuthenticationContext(object):
         argument.validate_user_code_info(user_code_info)
         
         key = user_code_info[OAuth2DeviceCodeResponseParameters.DEVICE_CODE]
-        request = self._token_requests_with_user_code.get(key)
-        if  not request:
-            raise ValueError('No acquire_token_with_device_code existed to be cancelled')
+        with self._lock:
+            request = self._token_requests_with_user_code.get(key)
 
-        request.cancel_token_request_with_device_code()
-        self._token_requests_with_user_code.pop(key, None)
+            if not request:
+                raise ValueError('No acquire_token_with_device_code existed to be cancelled')
+
+            request.cancel_token_request_with_device_code()
+            self._token_requests_with_user_code.pop(key, None)
