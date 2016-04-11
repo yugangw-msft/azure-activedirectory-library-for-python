@@ -19,7 +19,7 @@ def get_private_key(filename):
 #
 # You can provide account information by using a JSON file. Either 
 # through a command line argument, 'python sample.js parameters.json', or
-# specifying in an environment variable.
+# specifying in an environment variable of ADAL_SAMPLE_PARAMETERS_FILE.
 # privateKeyFile must contain a PEM encoded cert with private key.
 # thumbprint must be the thumbprint of the privateKeyFile.
 # {
@@ -42,15 +42,19 @@ else:
 
 authority_url = (sample_parameters['authorityHostUrl'] + '/' + 
                  sample_parameters['tenant'])
-resource = '00000002-0000-0000-c000-000000000000'
+RESOURCE = '00000002-0000-0000-c000-000000000000'
 
-turn_on_logging()
+#uncomment for verbose logging
+#turn_on_logging()
 
 context = adal.AuthenticationContext(authority_url)
 key = get_private_key(sample_parameters['privateKeyFile'])
 
 token = context.acquire_token_with_client_certificate(
-    resource, 
+    RESOURCE, 
     sample_parameters['clientId'], 
     key, 
     sample_parameters['thumbprint'])
+
+print ('Here is the token:')
+print(json.dumps(token, indent=2))

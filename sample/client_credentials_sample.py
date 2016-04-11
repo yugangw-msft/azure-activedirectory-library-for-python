@@ -13,7 +13,7 @@ def turn_on_logging():
 
 # You can provide account information by using a JSON file. Either
 # through a command line argument, 'python sample.js parameters.json', or
-# specifying in an environment variable.
+# specifying in an environment variable of ADAL_SAMPLE_PARAMETERS_FILE.
 # {
 #    "tenant" : "rrandallaad1.onmicrosoft.com",
 #    "authorityHostUrl" : "https://login.microsoftonline.com",
@@ -33,13 +33,17 @@ else:
     
 authority_url = (sample_parameters['authorityHostUrl'] + '/' + 
                  sample_parameters['tenant'])
-resource = '00000002-0000-0000-c000-000000000000'
+RESOURCE = '00000002-0000-0000-c000-000000000000'
 
-turn_on_logging()
+#uncomment for verbose log
+#turn_on_logging()
 
 context = adal.AuthenticationContext(authority_url)
 
 token = context.acquire_token_with_client_credentials(
-    resource,
+    RESOURCE,
     sample_parameters['clientId'], 
     sample_parameters['clientSecret'])
+
+print ('Here is the token:')
+print(json.dumps(token, indent=2))

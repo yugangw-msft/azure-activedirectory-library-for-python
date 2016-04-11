@@ -13,7 +13,7 @@ from . import log
 
 def _create_token_hash(token):
     m = hashlib.sha256()
-    m.update(token.encode('utf8')) # TODO: what is the default encoding
+    m.update(token.encode('utf8'))
     hash = base64.b64encode(m.digest())
     return hash
 
@@ -119,7 +119,7 @@ class CacheDriver(object):
         return new_entry
 
     def _refresh_entry_if_necessary(self, entry, is_resource_specific):
-        expiry_date = parser.parse(entry[TokenResponseFields.EXPIRES_ON]) #get clear on local time and time saving
+        expiry_date = parser.parse(entry[TokenResponseFields.EXPIRES_ON])
         now = datetime.now(expiry_date.tzinfo)
             
         # Add some buffer in to the time comparison to account for clock skew or latency.

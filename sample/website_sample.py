@@ -1,18 +1,36 @@
-﻿import http.server
+﻿try: 
+    import http.server as httpserver
+except ImportError:
+    import SimpleHTTPServer as httpserver
+
+try:
+    import socketserver
+except ImportError:
+    import SocketServer as socketserver
+
+try:
+    from urllib.parse import urlparse, parse_qs
+except ImportError:
+    from urlparse import urlparse, parse_qs
+
+try:
+    from http import cookies as Cookie
+except ImportError:
+    import Cookie as Cookie
+
 import json
 import os
 import random
-import socketserver
 import string
 import sys
-from urllib.parse import urlparse, parse_qs
+
 
 from adal import AuthenticationContext
 import logging
 
 # You can provide account information by using a JSON file. Either
 # through a command line argument, 'python sample.js parameters.json', or
-# specifying in an environment variable
+# specifying in an environment variable of ADAL_SAMPLE_PARAMETERS_FILE.
 # {
 #    "tenant" : "rrandallaad1.onmicrosoft.com",
 #    "authorityHostUrl" : "https://login.microsoftonline.com",
@@ -31,34 +49,37 @@ else:
     raise ValueError('Please provide parameter file with account information.')
 
 PORT = 8088
-server_url = 'http://localhost:{}'.format(PORT)
 TEMPLATE_AUTHZ_URL = ('https://login.windows.net/{}/oauth2/authorize?'+ 
                       'response_type=code&client_id={}&redirect_uri={}&'+
                       'state={}&resource={}')
-resource = '00000002-0000-0000-c000-000000000000' #aad graph
-redirect_uri = 'http://localhost:{}/getAToken'.format(PORT)
+RESOURCE = '00000002-0000-0000-c000-000000000000' #Graph Resource
+REDIRECT_URI = 'http://localhost:{}/getAToken'.format(PORT)
+
 authority_url = (sample_parameters['authorityHostUrl'] + '/' + 
                  sample_parameters['tenant'])
 
-class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
+class OAuth2RequestHandler(httpserver.SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/':
-            self._redirect(server_url + '/login')
+            self.send_response(307)
+            self.send_header('Location','http://localhost:{}/login'.format(PORT))
+            self.end_headers()
         elif self.path == '/login':
             auth_state = (''.join(random.SystemRandom() 
                           .choice(string.ascii_uppercase + string.digits)
                           for _ in range(48)))
-            c = http.cookies.SimpleCookie()
+            c = Cookie.SimpleCookie()
             c['auth_state'] = auth_state
             authorization_url = TEMPLATE_AUTHZ_URL.format(
                 sample_parameters['tenant'], 
                 sample_parameters['clientId'], 
-                redirect_uri, 
+                REDIRECT_URI, 
                 auth_state, 
-                resource)
-            #self.send_header('Set-Cookie', c.output(header=''))
-            #self.end_headers()
-            self._redirect(authorization_url)
+                RESOURCE)
+            self.send_response(307)
+            self.send_header('Set-Cookie', c.output(header=''))
+            self.send_header('Location', authorization_url)
+            self.end_headers()
         elif self.path.startswith('/getAToken'):
             message = None
             is_ok = True
@@ -71,8 +92,8 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
                     token_response['refreshToken'],
                     sample_parameters['clientId'],
                     sample_parameters['clientSecret'],
-                    resource)
-                message = (message + '\nrefreshResponse:' + 
+                    RESOURCE)
+                message = (message + '*** And here is the refresh response:' + 
                            json.dumps(token_response))
             except ValueError as exp:
                 message = str(exp)
@@ -83,34 +104,39 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         code = parse_qs(parsed.query)['code'][0]
         state = parse_qs(parsed.query)['state'][0]
-        c = cookie.SimpleCookie(self.headers["Cookie"])
-        if state != c['auth_state']:
+        c = Cookie.SimpleCookie(self.headers["Cookie"])
+        if state != c['auth_state'].value:
             raise ValueError('state does not match')
         auth_context = AuthenticationContext(authority_url)
         token = auth_context.acquire_token_with_authorization_code(
             code, 
-            redirect_uri, 
-            resource, 
+            REDIRECT_URI, 
+            RESOURCE, 
             sample_parameters['clientId'], 
             sample_parameters['clientSecret'])
         return token
-
-    def _redirect(self, url):
-        self.send_response(307)
-        self.send_header('Location',url)
-        self.end_headers()
 
     def _create_authorization_url(self):
         TEMPLATE_AUTHZ_URL.format()
 
     def _send_response(self, message, is_ok=True):
+        self.send_response(200 if is_ok else 400)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+
         if is_ok:
-            self.send_response(200, message)
+            #todo, pretty format token response in json
+            message_template = ('<html><head><title>Succeeded</title></head>' + 
+                                '<body><p>{}</p></body></html>')
         else:
-            self.send_error(400, message)
+            message_template = ('<html><head><title>Failed</title></head>' + 
+                                '<body><p>{}</p></body></html>')
 
-httpd = socketserver.TCPServer(("", PORT), MyRequestHandler)
+        output = message_template.format(message)
+        self.wfile.write(output.encode())
 
-print("serving at port", PORT)
+httpd = socketserver.TCPServer(('', PORT), OAuth2RequestHandler)
+
+print('serving at port', PORT)
 httpd.serve_forever()
 
