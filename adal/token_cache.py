@@ -1,4 +1,5 @@
 ﻿import json
+import threading
 
 from .constants import TokenResponseFields
 
@@ -32,48 +33,54 @@ class TokenCacheKey(object):
     def __ne__(self, other):
         return not self == other
 
-#TODO: ensure thread safety
 class TokenCache(object):
     def __init__(self, state=None):
         self._cache = {}
         if state:
             self.deserialize(state)
         self.has_state_changed = False
+        self._lock = threading.RLock()
 
     def find(self, query):
-        entries = self._query_cache(
-            query.get(TokenResponseFields.IS_MRRT), 
-            query.get(TokenResponseFields.USER_ID), 
-            query.get(TokenResponseFields._CLIENT_ID))
-        return entries
+        with self._lock:
+            entries = self._query_cache(
+                query.get(TokenResponseFields.IS_MRRT), 
+                query.get(TokenResponseFields.USER_ID), 
+                query.get(TokenResponseFields._CLIENT_ID))
+            return entries
 
     def remove(self, entries):
-        for e in entries:
-           key = TokenCache._get_cache_key(e)
-           self._cache.pop(key)
-        self.has_state_changed = True
+        with self._lock:
+            for e in entries:
+               key = TokenCache._get_cache_key(e)
+               self._cache.pop(key)
+            self.has_state_changed = True
 
     def add(self, entries):
-        for e in entries:
-            key = TokenCache._get_cache_key(e)
-            self._cache[key] = e
-        self.has_state_changed = True
+        with self._lock:
+            for e in entries:
+                key = TokenCache._get_cache_key(e)
+                self._cache[key] = e
+            self.has_state_changed = True
 
     def serialize(self):
-        state = json.dumps(list(self._cache.values()))
-        return state
+        with self._lock:
+            state = json.dumps(list(self._cache.values()))
+            return state
 
     def deserialize(self, state):
-        self._cache.clear()
-        if state:
-            tokens = json.loads(state)
-            for t in tokens:
-                key = self._get_cache_key(t)
-                self._cache[key] = t
+        with self._lock:
+            self._cache.clear()
+            if state:
+                tokens = json.loads(state)
+                for t in tokens:
+                    key = self._get_cache_key(t)
+                    self._cache[key] = t
 
     def read_items(self):
         '''output list of tuples in (key, authentication-result)'''
-        return self._cache.items()
+        with self._lock:
+            return self._cache.items()
 
     @staticmethod
     def _get_cache_key(entry):
