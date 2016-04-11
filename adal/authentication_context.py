@@ -109,12 +109,12 @@ class AuthenticationContext(object):
         return token
 
     def acquire_token_with_authorization_code(
-        self, 
-        authorization_code, 
-        redirect_uri, 
-        resource, 
-        client_id, 
-        client_secret):
+            self, 
+            authorization_code, 
+            redirect_uri, 
+            resource, 
+            client_id, 
+            client_secret):
 
         argument.validate_string_param(authorization_code, 'authorization_code')
         argument.validate_string_param(redirect_uri, 'redirect_uri')

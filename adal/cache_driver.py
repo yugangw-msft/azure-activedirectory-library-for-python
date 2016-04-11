@@ -12,10 +12,10 @@ from . import log
 # pylint: disable=W0212
 
 def _create_token_hash(token):
-    m = hashlib.sha256()
-    m.update(token.encode('utf8'))
-    hash = base64.b64encode(m.digest())
-    return hash
+    hash_object = hashlib.sha256()
+    hash_object.update(token.encode('utf8'))
+    token_hash = base64.b64encode(hash_object.digest())
+    return token_hash
 
 def _create_token_id_message(entry):
     access_token_hash = _create_token_hash(entry[TokenResponseFields.ACCESS_TOKEN])
@@ -197,4 +197,3 @@ class CacheDriver(object):
         self._argument_entry_with_cached_metadata(entry)
         self._update_refresh_tokens(entry)
         self._cache.add([entry])
-

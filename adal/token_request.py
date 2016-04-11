@@ -130,9 +130,9 @@ class TokenRequest(object):
         oauth_parameters[OAUTH2_PARAMETERS.GRANT_TYPE] = grant_type
 
         if (OAUTH2_GRANT_TYPE.AUTHORIZATION_CODE != grant_type and
-            OAUTH2_GRANT_TYPE.CLIENT_CREDENTIALS != grant_type and
-            OAUTH2_GRANT_TYPE.REFRESH_TOKEN != grant_type and
-            OAUTH2_GRANT_TYPE.DEVICE_CODE != grant_type):
+                OAUTH2_GRANT_TYPE.CLIENT_CREDENTIALS != grant_type and
+                OAUTH2_GRANT_TYPE.REFRESH_TOKEN != grant_type and
+                OAUTH2_GRANT_TYPE.DEVICE_CODE != grant_type):
 
             oauth_parameters[OAUTH2_PARAMETERS.SCOPE] = OAUTH2_SCOPE.OPENID
 
@@ -183,9 +183,11 @@ class TokenRequest(object):
             wstrust_response = wstrust.acquire_token(username, password)
             return wstrust_response
         except AdalError as exp:
-            error_msg = exp.error_msg
+            error_msg = str(exp)
             if not error_msg:
-                error_msg = "Unsuccessful RSTR.\n\terror code: {0}\n\tfaultMessage: {1}".format(exp.error_response.error_code, exp.error_response.fault_message)
+                err_template = "Unsuccessful RSTR.\n\terror code: {0}\n\tfaultMessage: {1}"
+                error_msg = (err_template.format(exp.error_response.error_code, 
+                                                 exp.error_response.fault_message))
             self._log.create_error(error_msg)
             raise
 

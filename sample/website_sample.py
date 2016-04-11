@@ -1,7 +1,9 @@
 ﻿try: 
-    import http.server as httpserver
+    from http import server as httpserver
+    from http import cookies as Cookie
 except ImportError:
     import SimpleHTTPServer as httpserver
+    import Cookie as Cookie
 
 try:
     import socketserver
@@ -13,20 +15,13 @@ try:
 except ImportError:
     from urlparse import urlparse, parse_qs
 
-try:
-    from http import cookies as Cookie
-except ImportError:
-    import Cookie as Cookie
-
 import json
 import os
 import random
 import string
 import sys
 
-
 from adal import AuthenticationContext
-import logging
 
 # You can provide account information by using a JSON file. Either
 # through a command line argument, 'python sample.js parameters.json', or
@@ -62,14 +57,15 @@ class OAuth2RequestHandler(httpserver.SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/':
             self.send_response(307)
-            self.send_header('Location','http://localhost:{}/login'.format(PORT))
+            login_url = 'http://localhost:{}/login'.format(PORT)
+            self.send_header('Location', login_url)
             self.end_headers()
         elif self.path == '/login':
             auth_state = (''.join(random.SystemRandom() 
-                          .choice(string.ascii_uppercase + string.digits)
-                          for _ in range(48)))
-            c = Cookie.SimpleCookie()
-            c['auth_state'] = auth_state
+                                  .choice(string.ascii_uppercase + string.digits)
+                                  for _ in range(48)))
+            cookie = Cookie.SimpleCookie()
+            cookie['auth_state'] = auth_state
             authorization_url = TEMPLATE_AUTHZ_URL.format(
                 sample_parameters['tenant'], 
                 sample_parameters['clientId'], 
@@ -77,7 +73,7 @@ class OAuth2RequestHandler(httpserver.SimpleHTTPRequestHandler):
                 auth_state, 
                 RESOURCE)
             self.send_response(307)
-            self.send_header('Set-Cookie', c.output(header=''))
+            self.send_header('Set-Cookie', cookie.output(header=''))
             self.send_header('Location', authorization_url)
             self.end_headers()
         elif self.path.startswith('/getAToken'):
@@ -104,8 +100,8 @@ class OAuth2RequestHandler(httpserver.SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         code = parse_qs(parsed.query)['code'][0]
         state = parse_qs(parsed.query)['state'][0]
-        c = Cookie.SimpleCookie(self.headers["Cookie"])
-        if state != c['auth_state'].value:
+        cookie = Cookie.SimpleCookie(self.headers["Cookie"])
+        if state != cookie['auth_state'].value:
             raise ValueError('state does not match')
         auth_context = AuthenticationContext(authority_url)
         token = auth_context.acquire_token_with_authorization_code(
@@ -115,9 +111,6 @@ class OAuth2RequestHandler(httpserver.SimpleHTTPRequestHandler):
             sample_parameters['clientId'], 
             sample_parameters['clientSecret'])
         return token
-
-    def _create_authorization_url(self):
-        TEMPLATE_AUTHZ_URL.format()
 
     def _send_response(self, message, is_ok=True):
         self.send_response(200 if is_ok else 400)

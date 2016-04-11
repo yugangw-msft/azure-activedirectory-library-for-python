@@ -56,5 +56,5 @@ token = context.acquire_token_with_client_certificate(
     key, 
     sample_parameters['thumbprint'])
 
-print ('Here is the token:')
+print('Here is the token:')
 print(json.dumps(token, indent=2))

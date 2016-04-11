@@ -46,7 +46,7 @@ code = context.acquire_user_code(RESOURCE, clientid)
 print(code['message'])
 token = context.acquire_token_with_device_code(RESOURCE, code, clientid)
 
-print ('Here is the token from "{}":'.format(authority_url))
+print('Here is the token from "{}":'.format(authority_url))
 print(json.dumps(token, indent=2))
 
 #try cross tenant token refreshing
@@ -57,6 +57,6 @@ if another_tenant:
     existing_cache = context.cache
     context = adal.AuthenticationContext(authority_url, cache=existing_cache)
     token = context.acquire_token(RESOURCE, token['userId'], clientid)
-    print ('Here is the token from "{}":'.format(authority_url))
+    print('Here is the token from "{}":'.format(authority_url))
     print(json.dumps(token, indent=2))
 

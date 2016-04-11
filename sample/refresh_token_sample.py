@@ -47,7 +47,7 @@ token = context.acquire_token_with_username_password(
     sample_parameters['password'],
     sample_parameters['clientid'])
 
-print ('Here is the token')
+print('Here is the token')
 print(json.dumps(token, indent=2))
 
 refresh_token = token['refreshToken']
@@ -57,5 +57,5 @@ token = context.acquire_token_with_refresh_token(
     None, 
     RESOURCE)
 
-print ('Here is the token acquired from the refreshing token')
+print('Here is the token acquired from the refreshing token')
 print(json.dumps(token, indent=2))

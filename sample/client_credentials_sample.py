@@ -45,5 +45,5 @@ token = context.acquire_token_with_client_credentials(
     sample_parameters['clientId'], 
     sample_parameters['clientSecret'])
 
-print ('Here is the token:')
+print('Here is the token:')
 print(json.dumps(token, indent=2))
