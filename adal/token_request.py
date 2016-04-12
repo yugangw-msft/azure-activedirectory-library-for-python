@@ -192,7 +192,7 @@ class TokenRequest(object):
                 err_template = "Unsuccessful RSTR.\n\terror code: {0}\n\tfaultMessage: {1}"
                 error_msg = (err_template.format(exp.error_response.error_code, 
                                                  exp.error_response.fault_message))
-            self._log.create_error(error_msg)
+            self._log.error(error_msg)
             raise
 
     def _perform_username_password_for_access_token_exchange(self, wstrust_endpoint, username, password):

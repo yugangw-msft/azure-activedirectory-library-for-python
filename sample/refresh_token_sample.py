@@ -54,7 +54,6 @@ refresh_token = token['refreshToken']
 token = context.acquire_token_with_refresh_token(
     refresh_token,
     sample_parameters['clientid'],
-    None, 
     RESOURCE)
 
 print('Here is the token acquired from the refreshing token')
