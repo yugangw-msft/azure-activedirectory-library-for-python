@@ -26,25 +26,22 @@
 #------------------------------------------------------------------------------
 
 import random
-import requests
-
-from . import log
-from . import util
-from . import xmlutil
 
 try:
-    from urllib.parse import quote, unquote
-    from urllib.parse import urlparse, urlsplit
-
+    from urllib.parse import urlparse
 except ImportError:
-    from urllib import quote, unquote
-    from urlparse import urlparse, urlsplit
+    from urlparse import urlparse
 
 try:
     from xml.etree import cElementTree as ET
 except ImportError:
     from xml.etree import ElementTree as ET
 
+import requests
+
+from . import log
+from . import util
+from . import xmlutil
 from .constants import XmlNamespaces
 from .constants import MexNamespaces
 from .adal_error import AdalError
@@ -82,7 +79,7 @@ class Mex(object):
                     except ValueError:
                         pass
 
-                raise AdalError(self._log.create_error(return_error_string), error_response)
+                raise AdalError(return_error_string, error_response)
 
             else:
                 try:
@@ -130,9 +127,9 @@ class Mex(object):
 
         for node in username_token_nodes:
             policy_node = self._parents[self._parents[self._parents[self._parents[self._parents[self._parents[self._parents[node]]]]]]]
-            id = self._check_policy(policy_node)
-            if id:
-                id_ref = '#' + id
+            policy_id = self._check_policy(policy_node)
+            if policy_id:
+                id_ref = '#' + policy_id
                 policies[id_ref] = {id:id_ref}
 
         return policies if policies else None
@@ -143,7 +140,7 @@ class Mex(object):
         soap_transport = ""
         name = binding_node.get('name')
 
-        soap_transport_attributes = []
+        soap_transport_attributes = ""
         soap_action_attributes = xmlutil.xpath_find(binding_node, MexNamespaces.SOAP_ACTION_XPATH)[0].attrib['soapAction']
 
         if soap_action_attributes:
@@ -178,8 +175,8 @@ class Mex(object):
 
         return bindings if bindings else None
 
-    def _url_is_secure(self, endpoint_url):
-
+    @staticmethod
+    def _url_is_secure(endpoint_url):
         parsed = urlparse(endpoint_url)
         return parsed.scheme == 'https'
 
@@ -201,7 +198,7 @@ class Mex(object):
                         raise self._log.create_error("No address nodes on port")
 
                     address = xmlutil.find_element_text(address_node)
-                    if self._url_is_secure(address):
+                    if Mex._url_is_secure(address):
                         binding_policy['url'] = address
                     else:
                         self._log.warn("Skipping insecure endpoint: {0}".format(address))
@@ -220,15 +217,15 @@ class Mex(object):
 
         policies = self._select_username_password_polices()
         if not policies:
-            raise AdalError(self._log.create_error("No matching policies."))
+            raise AdalError("No matching policies.")
             
 
         bindings = self._get_matching_bindings(policies)
         if not bindings:
-            raise AdalError(self._log.create_error("No matching bindings."))
+            raise AdalError("No matching bindings.")
 
         self._get_ports_for_policy_bindings(bindings, policies)
         self._select_single_matching_policy(policies)
 
         if not self._url:
-            raise AdalError(self._log.create_error("No ws-trust endpoints match requirements."))
+            raise AdalError("No ws-trust endpoints match requirements.")

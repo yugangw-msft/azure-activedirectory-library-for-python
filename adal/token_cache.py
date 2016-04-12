@@ -52,8 +52,8 @@ class TokenCache(object):
     def remove(self, entries):
         with self._lock:
             for e in entries:
-               key = TokenCache._get_cache_key(e)
-               self._cache.pop(key)
+                key = TokenCache._get_cache_key(e)
+                self._cache.pop(key)
             self.has_state_changed = True
 
     def add(self, entries):
@@ -94,6 +94,7 @@ class TokenCache(object):
         matches = []
         for k in self._cache:
             v = self._cache[k]
+            #None value will be taken as wildcard match
             if (is_mrrt is None or is_mrrt == v.get(TokenResponseFields.IS_MRRT)) and \
                (user_id is None or _string_cmp(user_id, v.get(TokenResponseFields.USER_ID))) and \
                (client_id is None or _string_cmp(client_id, v.get(TokenResponseFields._CLIENT_ID))):

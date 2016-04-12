@@ -25,7 +25,6 @@
 #
 #------------------------------------------------------------------------------
 
-from functools import partial
 from base64 import b64encode
 
 from . import constants
@@ -64,10 +63,15 @@ class TokenRequest(object):
         self._client_id = client_id
         self._redirect_uri = redirect_uri
 
-        # This should be set at the beginning of get_token
+        self._cache_driver = None
+        
+        # should be set at the beginning of get_token
         # functions that have a user_id
         self._user_id = None
         self._user_realm = None
+
+        # should be set when acquire token using device flow
+        self._polling_client = None
 
     def _create_user_realm_request(self, username):
         return user_realm.UserRealm(self._call_context, username, self._authentication_context.authority.url)
@@ -200,12 +204,16 @@ class TokenRequest(object):
         self._log.debug("Acquiring token with username password for federated user")
 
         if not self._user_realm.federation_metadata_url:
-            self._log.warn("Unable to retrieve federationMetadataUrl from AAD.  Attempting fallback to AAD supplied endpoint.")
+            self._log.warn("Unable to retrieve federationMetadataUrl from AAD. " +
+                           "Attempting fallback to AAD supplied endpoint.")
 
             if not self._user_realm.federation_active_auth_url:
-                raise AdalError('AAD did not return a WSTrust endpoint.  Unable to proceed.')
+                raise AdalError('AAD did not return a WSTrust endpoint. Unable to proceed.')
 
-            token = self._perform_username_password_for_access_token_exchange(self._user_realm.federation_active_auth_url, username, password)
+            token = self._perform_username_password_for_access_token_exchange(
+                self._user_realm.federation_active_auth_url, 
+                username, 
+                password)
             return token
         else:
             mex_endpoint = self._user_realm.federation_metadata_url
@@ -216,11 +224,13 @@ class TokenRequest(object):
             try:
                 mex_instance.discover()
                 wstrust_endpoint = mex_instance.username_password_url
-            except:
-                self._log.warn("MEX exchange failed.  Attempting fallback to AAD supplied endpoint.")
+            except Exception as ex:
+                error_template = ("MEX exchange failed for {}. " + 
+                                  "Attempting fallback to AAD supplied endpoint.")
+                self._log.warn(error_template.format(ex))
                 wstrust_endpoint = self._user_realm.federation_active_auth_url
                 if not wstrust_endpoint:
-                    raise AdalError('AAD did not return a WSTrust endpoint.  Unable to proceed.')
+                    raise AdalError('AAD did not return a WSTrust endpoint. Unable to proceed.')
 
             token = self._perform_username_password_for_access_token_exchange(wstrust_endpoint, username, password)
             return token
@@ -244,10 +254,11 @@ class TokenRequest(object):
             elif self._user_realm.account_type == ACCOUNT_TYPE['Federated']:
                 token = self._get_token_username_password_federated(username, password)
             else:
-                raise AdalError(self._log.create_error("Server returned an unknown AccountType: {0}".format(self._user_realm.account_type)))
+                raise AdalError(
+                    "Server returned an unknown AccountType: {0}".format(self._user_realm.account_type))
             self._log.debug("Successfully retrieved token from authority.")
         except Exception as exp:
-            self._log.warn("get_token_func returned with err".format(exp))
+            self._log.warn("get_token_func returned with err: {}".format(exp))
             raise
         
         self._cache_driver.add(token)

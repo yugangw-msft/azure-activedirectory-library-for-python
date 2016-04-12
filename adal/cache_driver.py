@@ -5,6 +5,7 @@ import json
 from datetime import datetime, timedelta
 from dateutil import parser
 
+from .adal_error import AdalError
 from .constants import TokenResponseFields, Misc
 from . import log
 
@@ -65,7 +66,9 @@ class CacheDriver(object):
         potential_entries = self._get_potential_entries(query)
         if potential_entries:
             resource_tenant_specific_entries = [
-                x for x in potential_entries if x[TokenResponseFields.RESOURCE] == self._resource and x[TokenResponseFields._AUTHORITY] == self._authority]
+                x for x in potential_entries 
+                if x[TokenResponseFields.RESOURCE] == self._resource and 
+                x[TokenResponseFields._AUTHORITY] == self._authority]
 
             if not resource_tenant_specific_entries:
                 self._log.debug('No resource specific cache entries found.')
@@ -82,7 +85,7 @@ class CacheDriver(object):
                 return_val = resource_tenant_specific_entries[0]
                 is_resource_tenant_specific = True
             else:
-                raise ValueError('More than one token matches the criteria.  The result is ambiguous.')
+                raise AdalError('More than one token matches the criteria. The result is ambiguous.')
 
         if return_val:
             self._log.debug(

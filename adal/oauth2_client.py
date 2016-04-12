@@ -27,11 +27,10 @@
 
 from datetime import datetime, timedelta
 import math
-import uuid
-import requests
 import re
 import json
 import time
+import uuid
 
 try:
     from urllib.parse import urlencode
@@ -39,6 +38,8 @@ try:
 except ImportError:
     from urllib import urlencode
     from urlparse import urlparse
+
+import requests
 
 from . import log
 from . import util
@@ -94,7 +95,7 @@ class OAuth2Client(object):
     @classmethod
     def _crack_jwt(cls, jwt_token):
 
-        id_token_parts_reg = "^([^\.\s]*)\.([^\.\s]+)\.([^\.\s]*)$"
+        id_token_parts_reg = r"^([^\.\s]*)\.([^\.\s]+)\.([^\.\s]*)$"
         matches = re.search(id_token_parts_reg, jwt_token)
         if not matches or len(matches.groups()) < 3:
             raise ValueError('The token was not parsable.')
@@ -107,7 +108,8 @@ class OAuth2Client(object):
 
         return cracked_token
 
-    def _get_user_id(self, id_token):
+    @staticmethod
+    def _get_user_id(id_token):
 
         user_id = None
         is_displayable = False
@@ -132,10 +134,11 @@ class OAuth2Client(object):
 
         return user_id_vals
 
-    def _extract_token_values(self, id_token):
+    @staticmethod
+    def _extract_token_values(id_token):
         extracted_values = {}
         extracted_values = map_fields(id_token, OAuth2.IdTokenMap)
-        extracted_values.update(self._get_user_id(id_token))
+        extracted_values.update(OAuth2Client._get_user_id(id_token))
         return extracted_values
 
     def _parse_id_token(self, encoded_token):
@@ -158,7 +161,7 @@ class OAuth2Client(object):
             self._log.warn("The returned id_token could not be decoded: {0}".format(exp))
             raise
 
-        return self._extract_token_values(id_token)
+        return OAuth2Client._extract_token_values(id_token)
 
     def _validate_token_response(self, body):
 
@@ -279,7 +282,7 @@ class OAuth2Client(object):
                     except ValueError:
                         pass
 
-                raise AdalError(self._log.create_error(return_error_string), error_response)
+                raise AdalError(return_error_string, error_response)
 
         except Exception as exp:
             self._log.error("{0} request failed".format(operation), exp)
@@ -309,7 +312,7 @@ class OAuth2Client(object):
                     except ValueError:
                         pass
 
-                raise AdalError(self._log.create_error(return_error_string), error_response)
+                raise AdalError(return_error_string, error_response)
 
         except Exception as exp:
             self._log.error("{0} request failed".format(operation), exp)

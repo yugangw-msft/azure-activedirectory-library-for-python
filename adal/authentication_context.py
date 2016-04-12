@@ -28,7 +28,6 @@
 import threading
 
 from .authority import Authority
-
 from . import argument
 from .code_request import CodeRequest
 from .token_request import TokenRequest
