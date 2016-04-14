@@ -42,8 +42,7 @@ from . import log
 def _create_token_hash(token):
     hash_object = hashlib.sha256()
     hash_object.update(token.encode('utf8'))
-    token_hash = base64.b64encode(hash_object.digest())
-    return token_hash
+    return base64.b64encode(hash_object.digest())
 
 def _create_token_id_message(entry):
     access_token_hash = _create_token_hash(entry[TokenResponseFields.ACCESS_TOKEN])
@@ -79,12 +78,11 @@ class CacheDriver(object):
         return entries
     
     def _find_mrrt_tokens_for_user(self, user):
-        entries = self._cache.find({
+        return self._cache.find({
             TokenResponseFields.IS_MRRT: True,
             TokenResponseFields.USER_ID: user,
             TokenResponseFields._CLIENT_ID : self._client_id            
             })
-        return entries
 
     def _load_single_entry_from_cache(self, query):
         return_val = []
@@ -157,12 +155,10 @@ class CacheDriver(object):
 
         if is_resource_specific and now_plus_buffer > expiry_date:
             self._log.info('Cached token is expired.  Refreshing: {}'.format(expiry_date))
-            new_entry = self._refresh_expired_entry(entry)
-            return new_entry
+            return self._refresh_expired_entry(entry)
         elif (not is_resource_specific) and entry.get(TokenResponseFields.IS_MRRT):
             self._log.info('Acquiring new access token from MRRT token.')
-            new_entry = self._acquire_new_token_from_mrrt(entry)
-            return new_entry
+            return self._acquire_new_token_from_mrrt(entry)
         else:
             return entry
 
@@ -172,8 +168,7 @@ class CacheDriver(object):
         self._log.debug('finding with query: {}'.format(json.dumps(query)))
         entry, is_resource_tenant_specific = self._load_single_entry_from_cache(query)
         if entry:
-            new_entry = self._refresh_entry_if_necessary(entry, is_resource_tenant_specific)
-            return new_entry
+            return self._refresh_entry_if_necessary(entry, is_resource_tenant_specific)
         else:
             return None
 

@@ -84,8 +84,7 @@ class AuthenticationContext(object):
     def _acquire_token(self, token_func):
         self._call_context['log_context'] = log.create_log_context(self.correlation_id)
         self.authority.validate(self._call_context)
-        token = token_func(self)
-        return token
+        return token_func(self)
 
     def acquire_token(self, resource, user_id, client_id):
         '''
@@ -104,11 +103,9 @@ class AuthenticationContext(object):
 
         def token_func(self):
             token_request = TokenRequest(self._call_context, self, client_id, resource)
-            token = token_request.get_token_from_cache_with_refresh(user_id)
-            return token
+            return token_request.get_token_from_cache_with_refresh(user_id)
 
-        token = self._acquire_token(token_func)
-        return token
+        return self._acquire_token(token_func)       
 
     def acquire_token_with_username_password(self, resource, username, password, client_id):
         '''
@@ -131,11 +128,9 @@ class AuthenticationContext(object):
 
         def token_func(self):
             token_request = TokenRequest(self._call_context, self, client_id, resource)
-            token = token_request.get_token_with_username_password(username, password)
-            return token
+            return token_request.get_token_with_username_password(username, password)
 
-        token = self._acquire_token(token_func)
-        return token
+        return self._acquire_token(token_func)
 
     def acquire_token_with_client_credentials(self, resource, client_id, client_secret):
         '''
@@ -153,11 +148,9 @@ class AuthenticationContext(object):
 
         def token_func(self):
             token_request = TokenRequest(self._call_context, self, client_id, resource)
-            token = token_request.get_token_with_client_credentials(client_secret)
-            return token
+            return token_request.get_token_with_client_credentials(client_secret)
 
-        token = self._acquire_token(token_func)
-        return token
+        return self._acquire_token(token_func)
 
     def acquire_token_with_authorization_code(
             self, 
@@ -195,13 +188,11 @@ class AuthenticationContext(object):
                 client_id, 
                 resource, 
                 redirect_uri)
-            token = token_request.get_token_with_authorization_code(
+            return token_request.get_token_with_authorization_code(
                 authorization_code, 
                 client_secret)
-            return token
 
-        token = self._acquire_token(token_func)
-        return token
+        return self._acquire_token(token_func)
 
     def acquire_token_with_refresh_token(self, refresh_token, client_id, resource, client_secret=None):
         '''
@@ -222,11 +213,9 @@ class AuthenticationContext(object):
         argument.validate_string_param(resource, 'resource')
         def token_func(self):
             token_request = TokenRequest(self._call_context, self, client_id, resource)
-            token = token_request.get_token_with_refresh_token(refresh_token, client_secret)
-            return token
+            return token_request.get_token_with_refresh_token(refresh_token, client_secret)
 
-        token = self._acquire_token(token_func)
-        return token
+        return self._acquire_token(token_func)
 
     def acquire_token_with_client_certificate(self, resource, client_id, certificate, thumbprint):
         '''
@@ -246,11 +235,9 @@ class AuthenticationContext(object):
 
         def token_func(self):
             token_request = TokenRequest(self._call_context, self, client_id, resource)
-            token = token_request.get_token_with_certificate(certificate, thumbprint)
-            return token
+            return token_request.get_token_with_certificate(certificate, thumbprint)
 
-        token = self._acquire_token(token_func)
-        return token
+        return self._acquire_token(token_func)
 
     def acquire_user_code(self, resource, client_id, language=None):
         '''
@@ -267,8 +254,7 @@ class AuthenticationContext(object):
         self._call_context['log_context'] = log.create_log_context(self.correlation_id)
         self.authority.validate(self._call_context)
         code_request = CodeRequest(self._call_context, self, client_id, resource)
-        code = code_request.get_user_code_info(language)
-        return code
+        return code_request.get_user_code_info(language)
 
     def acquire_token_with_device_code(self, resource, user_code_info, client_id):
         '''
@@ -298,8 +284,7 @@ class AuthenticationContext(object):
             
             return token
 
-        token = self._acquire_token(token_func)
-        return token
+        return self._acquire_token(token_func)
 
     def cancel_request_to_get_token_with_device_code(self, user_code_info):
         '''

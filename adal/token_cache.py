@@ -70,11 +70,10 @@ class TokenCache(object):
 
     def find(self, query):
         with self._lock:
-            entries = self._query_cache(
+            return self._query_cache(
                 query.get(TokenResponseFields.IS_MRRT), 
                 query.get(TokenResponseFields.USER_ID), 
                 query.get(TokenResponseFields._CLIENT_ID))
-            return entries
 
     def remove(self, entries):
         with self._lock:
@@ -92,8 +91,7 @@ class TokenCache(object):
 
     def serialize(self):
         with self._lock:
-            state = json.dumps(list(self._cache.values()))
-            return state
+            return json.dumps(list(self._cache.values()))
 
     def deserialize(self, state):
         with self._lock:

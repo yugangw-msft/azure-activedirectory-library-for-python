@@ -176,9 +176,7 @@ def create_authentication_parameters_from_url(url, correlation_id=None):
         raise
 
     try:
-        parameters = create_authentication_parameters_from_response(response)
+        return create_authentication_parameters_from_response(response)
     except Exception as exp:
         logger.info("Unable to parse response in to authentication parameters.")
         raise
-
-    return parameters

@@ -77,9 +77,6 @@ class Authority(object):
         try:
             self._tenant = path_parts[1]
         except IndexError:
-            self._tenant = None
-
-        if not self._tenant:
             raise ValueError("Could not determine tenant.")
 
     def _perform_static_instance_discovery(self):

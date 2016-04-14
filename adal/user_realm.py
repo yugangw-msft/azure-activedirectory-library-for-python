@@ -68,9 +68,7 @@ class UserRealm(object):
 
         user_realm_query = {'api-version':self.api_version}
         url_components[4] = urlencode(user_realm_query)
-        user_realm_url = util.copy_url(urlunparse(url_components))
-
-        return user_realm_url
+        return util.copy_url(urlunparse(url_components))
 
     @staticmethod
     def _validate_constant_value(value_dic, value, case_sensitive=False):
@@ -103,7 +101,6 @@ class UserRealm(object):
 
         self._log.debug("Discovery response:\n{0}".format(body))
 
-        response = None
         try:
             response = json.loads(body)
         except ValueError:

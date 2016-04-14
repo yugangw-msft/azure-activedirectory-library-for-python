@@ -105,8 +105,7 @@ class TokenRequest(object):
     def _find_token_from_cache(self):
         self._cache_driver = self._create_cache_driver()
         cache_query = self._create_cache_query()
-        token = self._cache_driver.find(cache_query)
-        return token
+        return self._cache_driver.find(cache_query)
 
     def _add_token_into_cache(self, token):
         cache_driver = self._create_cache_driver()
@@ -116,8 +115,7 @@ class TokenRequest(object):
     def _get_token_with_token_response(self, entry, resource):
         self._log.debug("called to refresh a token from the cache")
         refresh_token = entry[TOKEN_RESPONSE_FIELDS.REFRESH_TOKEN]
-        token = self._get_token_with_refresh_token(refresh_token, resource, None)
-        return token
+        return self._get_token_with_refresh_token(refresh_token, resource, None)
 
     def _create_cache_query(self):
         query = {_CLIENT_ID : self._client_id}
@@ -154,10 +152,10 @@ class TokenRequest(object):
         oauth_parameters[OAUTH2_PARAMETERS.PASSWORD] = password
         oauth_parameters[OAUTH2_PARAMETERS.USERNAME] = username
 
-        token = self._oauth_get_token(oauth_parameters)
-        return token
+        return self._oauth_get_token(oauth_parameters)
 
-    def _get_saml_grant_type(self, wstrust_response):
+    @staticmethod
+    def _get_saml_grant_type(wstrust_response):
         token_type = wstrust_response.token_type
         if token_type == SAML.TokenTypeV1:
             return OAUTH2_GRANT_TYPE.SAML1
@@ -172,20 +170,18 @@ class TokenRequest(object):
         self._log.debug("Performing OAuth assertion grant type exchange.")
 
         oauth_parameters = {}
-        grant_type = self._get_saml_grant_type(wstrust_response)
+        grant_type = TokenRequest._get_saml_grant_type(wstrust_response)
         assertion = b64encode(wstrust_response.token)
         oauth_parameters = self._create_oauth_parameters(grant_type)
         oauth_parameters[OAUTH2_PARAMETERS.ASSERTION] = assertion
 
-        token = self._oauth_get_token(oauth_parameters)
-        return token
+        return self._oauth_get_token(oauth_parameters)
 
     def _perform_wstrust_exchange(self, wstrust_endpoint, username, password):
         wstrust = self._create_wstrust_request(wstrust_endpoint, "urn:federation:MicrosoftOnline")
 
         try:
-            wstrust_response = wstrust.acquire_token(username, password)
-            return wstrust_response
+            return wstrust.acquire_token(username, password)
         except AdalError as exp:
             error_msg = str(exp)
             if exp.error_response:
@@ -197,8 +193,7 @@ class TokenRequest(object):
 
     def _perform_username_password_for_access_token_exchange(self, wstrust_endpoint, username, password):
         wstrust_response = self._perform_wstrust_exchange(wstrust_endpoint, username, password)
-        token = self._perform_wstrust_assertion_oauth_exchange(wstrust_response)
-        return token
+        return self._perform_wstrust_assertion_oauth_exchange(wstrust_response)
 
     def _get_token_username_password_federated(self, username, password):
         self._log.debug("Acquiring token with username password for federated user")
@@ -210,16 +205,14 @@ class TokenRequest(object):
             if not self._user_realm.federation_active_auth_url:
                 raise AdalError('AAD did not return a WSTrust endpoint. Unable to proceed.')
 
-            token = self._perform_username_password_for_access_token_exchange(
+            return self._perform_username_password_for_access_token_exchange(
                 self._user_realm.federation_active_auth_url, 
                 username, 
                 password)
-            return token
         else:
             mex_endpoint = self._user_realm.federation_metadata_url
             self._log.debug("Attempting mex at: {0}".format(mex_endpoint))
             mex_instance = self._create_mex(mex_endpoint)
-            wstrust_endpoint = None
              
             try:
                 mex_instance.discover()
@@ -232,8 +225,7 @@ class TokenRequest(object):
                 if not wstrust_endpoint:
                     raise AdalError('AAD did not return a WSTrust endpoint. Unable to proceed.')
 
-            token = self._perform_username_password_for_access_token_exchange(wstrust_endpoint, username, password)
-            return token
+            return self._perform_username_password_for_access_token_exchange(wstrust_endpoint, username, password)
 
     def get_token_with_username_password(self, username, password):
         self._log.info("Acquiring token with username password.")
@@ -288,8 +280,7 @@ class TokenRequest(object):
         oauth_parameters[OAUTH2_PARAMETERS.CODE] = authorization_code
         oauth_parameters[OAUTH2_PARAMETERS.CLIENT_SECRET] = client_secret
 
-        token = self._oauth_get_token(oauth_parameters)
-        return token
+        return self._oauth_get_token(oauth_parameters)
 
     def _get_token_with_refresh_token(self, refresh_token, resource, client_secret):
 
@@ -303,18 +294,15 @@ class TokenRequest(object):
             oauth_parameters[OAUTH2_PARAMETERS.CLIENT_SECRET] = client_secret
 
         oauth_parameters[OAUTH2_PARAMETERS.REFRESH_TOKEN] = refresh_token
-        token = self._oauth_get_token(oauth_parameters)
-        return token
+        return self._oauth_get_token(oauth_parameters)
 
     def get_token_with_refresh_token(self, refresh_token, client_secret):
-        token = self._get_token_with_refresh_token(refresh_token, None, client_secret)
-        return token
+        return self._get_token_with_refresh_token(refresh_token, None, client_secret)
 
     def get_token_from_cache_with_refresh(self, user_id):
         self._log.info("Getting token from cache with refresh if necessary.")
         self._user_id = user_id
-        token = self._find_token_from_cache()
-        return token
+        return self._find_token_from_cache()
 
     def _create_jwt(self, certificate, thumbprint):
 
@@ -336,7 +324,6 @@ class TokenRequest(object):
         oauth_parameters[OAUTH2_PARAMETERS.CLIENT_ASSERTION_TYPE] = OAUTH2_GRANT_TYPE.JWT_BEARER
         oauth_parameters[OAUTH2_PARAMETERS.CLIENT_ASSERTION] = jwt
 
-        token = None
         try:
             token = self._find_token_from_cache()
             if token:
@@ -344,8 +331,7 @@ class TokenRequest(object):
         except AdalError as exp: 
             self._log.warn('Attempt to look for token in cache resulted in Error: {}'.format(exp), True)
         
-        token = self._oauth_get_token(oauth_parameters)
-        return token
+        return self._oauth_get_token(oauth_parameters)
 
     def get_token_with_device_code(self, user_code_info):
         self._log.info("Getting a token via device code")

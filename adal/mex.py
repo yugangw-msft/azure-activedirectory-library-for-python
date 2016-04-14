@@ -63,7 +63,6 @@ class Mex(object):
         self._log.debug("Retrieving mex at: {0}".format(self._url))
         options = util.create_request_options(self, {'headers': {'Content-Type': 'application/soap+xml'}})
 
-        resp = None
         try:
             operation = "Mex Get"
             resp = requests.get(self._url, headers=options['headers'])
