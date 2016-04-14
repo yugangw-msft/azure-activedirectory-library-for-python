@@ -104,7 +104,7 @@ class UserRealm(object):
         try:
             response = json.loads(body)
         except ValueError:
-            error_template = ("Parsing realm discovery response JSON failed " + 
+            error_template = ("Parsing realm discovery response JSON failed " 
                               "for body: '{}'")
             self._log.info(error_template.format(body))
             raise

@@ -199,7 +199,7 @@ class TokenRequest(object):
         self._log.debug("Acquiring token with username password for federated user")
 
         if not self._user_realm.federation_metadata_url:
-            self._log.warn("Unable to retrieve federationMetadataUrl from AAD. " +
+            self._log.warn("Unable to retrieve federationMetadataUrl from AAD. "
                            "Attempting fallback to AAD supplied endpoint.")
 
             if not self._user_realm.federation_active_auth_url:
@@ -218,7 +218,7 @@ class TokenRequest(object):
                 mex_instance.discover()
                 wstrust_endpoint = mex_instance.username_password_url
             except Exception:
-                warn_template = ("MEX exchange failed for {}. " + 
+                warn_template = ("MEX exchange failed for {}. " 
                                  "Attempting fallback to AAD supplied endpoint.")
                 self._log.warn(warn_template.format(mex_endpoint))
                 wstrust_endpoint = self._user_realm.federation_active_auth_url

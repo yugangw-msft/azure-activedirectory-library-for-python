@@ -136,8 +136,8 @@ def create_authentication_parameters_from_response(response):
         raise AttributeError('There were no headers found in the response.')
 
     if response.status_code != HttpError.UNAUTHORIZED:
-        raise ValueError('The response status code does not correspond to an OAuth challenge.  ' +
-      'The statusCode is expected to be 401 but is: {0}'.format(response.status_code))
+        raise ValueError('The response status code does not correspond to an OAuth challenge.  '
+                         'The statusCode is expected to be 401 but is: {0}'.format(response.status_code))
 
     challenge = response.headers.get(WWW_AUTHENTICATE_HEADER)
     if not challenge:

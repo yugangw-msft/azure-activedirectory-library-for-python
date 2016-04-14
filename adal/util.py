@@ -87,5 +87,5 @@ def copy_url(url_source):
 # the string needs to be correctly padded before decoding.
 def base64_urlsafe_decode(b64string):
     b64string += '=' * (4 - ((len(b64string) % 4)))
-    return base64.urlsafe_b64decode(b64string.encode('utf-8'))
+    return base64.urlsafe_b64decode(b64string.encode('ascii'))
 

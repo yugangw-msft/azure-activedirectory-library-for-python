@@ -117,10 +117,10 @@ class OAuth2RequestHandler(httpserver.SimpleHTTPRequestHandler):
 
         if is_ok:
             #todo, pretty format token response in json
-            message_template = ('<html><head><title>Succeeded</title></head>' + 
+            message_template = ('<html><head><title>Succeeded</title></head>'
                                 '<body><p>{}</p></body></html>')
         else:
-            message_template = ('<html><head><title>Failed</title></head>' + 
+            message_template = ('<html><head><title>Failed</title></head>'
                                 '<body><p>{}</p></body></html>')
 
         output = message_template.format(message)
