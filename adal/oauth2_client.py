@@ -195,10 +195,10 @@ class OAuth2Client(object):
             wire_response[OAuth2.ResponseParameters.CREATED_ON] = str(temp_date)
 
         if not wire_response.get(OAuth2.ResponseParameters.TOKEN_TYPE):
-            raise self._log.create_error('wire_response is missing token_type')
+            raise AdalError('wire_response is missing token_type')
 
         if not wire_response.get(OAuth2.ResponseParameters.ACCESS_TOKEN):
-            raise self._log.create_error('wire_response is missing access_token')
+            raise AdalError('wire_response is missing access_token')
 
         token_response = map_fields(wire_response, TOKEN_RESPONSE_MAP)
 

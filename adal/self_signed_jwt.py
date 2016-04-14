@@ -35,6 +35,7 @@ import re
 
 from .constants import Jwt
 from .log import Logger
+from .adal_error import AdalError
 
 class SelfSignedJwt(object):
 
@@ -92,14 +93,14 @@ class SelfSignedJwt(object):
 
     def _raise_on_invalid_jwt_signature(self, encoded_jwt):
         segments = encoded_jwt.split('.')
-        if len(segments) < 3 or not segments[2]:
-            raise self._log.create_error('Failed to sign JWT. This is most likely due to an invalid certificate.')
+        if len(segments) < 3 or not segments[2]:    
+            raise AdalError('Failed to sign JWT. This is most likely due to an invalid certificate.')
 
     def _raise_on_invalid_thumbprint(self, thumbprint):
 
         thumbprint_sizes = [self.NumCharIn128BitHexString, self.numCharIn160BitHexString]
         if len(thumbprint) not in thumbprint_sizes or not re.search(self.ThumbprintRegEx, thumbprint):
-            raise self._log.create_error("The thumbprint does not match a known format")
+            raise AdalError("The thumbprint does not match a known format")
 
     def _sign_jwt(self, header, payload, certificate):
         encoded_jwt = SelfSignedJwt._encode_jwt(payload, certificate, header)

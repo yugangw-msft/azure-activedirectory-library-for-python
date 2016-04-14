@@ -190,7 +190,7 @@ class Mex(object):
                 if not binding_policy.get('url', None):
                     address_node = node.find(MexNamespaces.ADDRESS_XPATH, XmlNamespaces.namespaces)
                     if address_node is None:
-                        raise self._log.create_error("No address nodes on port")
+                        raise AdalError("No address nodes on port")
 
                     address = xmlutil.find_element_text(address_node)
                     if Mex._url_is_secure(address):

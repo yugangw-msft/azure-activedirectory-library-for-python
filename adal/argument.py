@@ -29,6 +29,7 @@ import sys
 from .constants import OAuth2DeviceCodeResponseParameters
 
 def validate_string_param(value, name):
+    '''check the value is a non empty string'''
     if not value:
         raise ValueError("The {0} parameter is required".format(name))
 

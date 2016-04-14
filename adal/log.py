@@ -31,58 +31,45 @@ import traceback
 
 ADAL_LOGGER_NAME = 'adal-python'
 
-LEVEL_STRING_MAP = {
-    0: 'ERROR:',
-    1: 'WARNING:',
-    2: 'INFO:',
-    3: 'DEBUG:'
-    }
-
-class LOGGING_LEVEL:
-    ERROR = 0
-    WARN = 1
-    INFO = 2
-    DEBUG = 3
-
-LEVEL_PY_MAP = {
-    LOGGING_LEVEL.ERROR  : 40,
-    LOGGING_LEVEL.WARN   : 30,
-    LOGGING_LEVEL.INFO   : 20,
-    LOGGING_LEVEL.DEBUG  : 10
-    }
-
 def create_log_context(correlation_id=None):
     return {'correlation_id' : correlation_id or str(uuid.uuid4())}
 
 def set_logging_options(options=None):
     '''
-    To set level: {'level': adal.log.LOGGING_LEVEL.DEBUG}
-    To add console log: { 'handler': logging.StreamHandler()}
-    to add file log: {'handler': logging.FileHandler('adal.log')}
+    Configure adal logger, including level and handler spec'd by python logging
+    module.
+
+    Basic Usages::
+        >>>adal.set_logging_options({
+        >>>  'level': 'DEBUG'
+        >>>  'handler': logging.FileHandler('adal.log')
+        >>>})
     '''
+    if options is None:
+        options = {}
     logger = logging.getLogger(ADAL_LOGGER_NAME)
 
     int_level = LEVEL_PY_MAP[LOGGING_LEVEL.ERROR]
-    if options.get('level'):
-        level = int(options['level'])
-        if level > 3 or level < 0:
-            raise ValueError("set_logging_options expects the level key to be in the range 0 to 3 inclusive")
-        int_level = LEVEL_PY_MAP[level]
-
-    logger.setLevel(int_level)
+    level = options.get('level')
+    if level:
+        logger.setLevel(level)
+    else:
+        logger.setLevel(logging.ERROR)
 
     handler = options.get('handler')
     if handler:
-        handler.setLevel(int_level)
+        handler.setLevel(logger.level)
         logger.addHandler(handler)
 
 def get_logging_options():
+    '''
+    Get logging options
 
+    :returns: a dict, with a key of 'level' for logging level.
+    '''
     logger = logging.getLogger(ADAL_LOGGER_NAME)
     level = logger.getEffectiveLevel()
-    for (key, val) in LEVEL_PY_MAP.items():
-        if level == val:
-            return {'level':key}
+    return { 'level': logger.getLevelName(level) }
 
 class Logger(object):
 
@@ -95,37 +82,28 @@ class Logger(object):
         self.log_context = log_context
         self._logging = logging.getLogger(ADAL_LOGGER_NAME)
 
-    def log_message(self, level, message, error=None):
+    def _log_message(self, level, message, log_stack_trace=False):
 
         correlation_id = self.log_context.get("correlation_id", "<no correlation id>")
 
-        formatted = "{0} - {1}: {2} {3}".format(correlation_id, self._component_name, LEVEL_STRING_MAP[level], message)
-        if error:
+        formatted = "{0} - {1}: {2} {3}".format(
+            correlation_id, 
+            self._component_name, 
+            logging.getLevelName(level), 
+            message)
+        if log_stack_trace:
             formatted += "\nStack:\n{0}".format(traceback.format_stack())
 
         return formatted
 
-    def error(self, message, error=None):
-
-        message = self.log_message(0, message, error)
-        self._logging.error(message)
-
-    def warn(self, message, error=None):
-
-        message = self.log_message(1, message, error)
+    def warn(self, message, log_stack_trace=False):
+        message = self._log_message(logging.WARN, message, log_stack_trace)
         self._logging.warning(message)
 
-    def info(self, message, error=None):
-
-        message = self.log_message(2, message, error)
+    def info(self, message, log_stack_trace=False):
+        message = self._log_message(logging.INFO, message, log_stack_trace)
         self._logging.info(message)
 
-    def debug(self, message, error=None):
-
-        message = self.log_message(3, message, error)
+    def debug(self, message, log_stack_trace=False):
+        message = self._log_message(logging.DEBUG, message, log_stack_trace)
         self._logging.debug(message)
-
-    def create_error(self, message, error=None):
-        err = Exception(message)
-        self.error(err, error)
-        return err

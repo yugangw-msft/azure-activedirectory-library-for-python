@@ -166,7 +166,7 @@ class TokenRequest(object):
             return OAUTH2_GRANT_TYPE.SAML2
 
         else:
-            raise self._log.create_error("RSTR returned unknown token type: {0}".format(token_type))
+            raise AdalError("RSTR returned unknown token type: {0}".format(token_type))
 
     def _perform_wstrust_assertion_oauth_exchange(self, wstrust_response):
         self._log.debug("Performing OAuth assertion grant type exchange.")
@@ -322,7 +322,7 @@ class TokenRequest(object):
         jwt = ssj.create(certificate, thumbprint)
 
         if not jwt:
-            raise self._log.create_error("Failed to create JWT.")
+            raise AdalError("Failed to create JWT.")
 
         return jwt    
     
