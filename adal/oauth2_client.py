@@ -36,8 +36,8 @@ try:
     from urllib.parse import urlencode
     from urllib.parse import urlparse
 except ImportError:
-    from urllib import urlencode
-    from urlparse import urlparse
+    from urllib import urlencode # pylint: disable=no-name-in-module
+    from urlparse import urlparse # pylint: disable=import-error
 
 import requests
 

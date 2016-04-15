@@ -25,7 +25,11 @@
 #
 #------------------------------------------------------------------------------
 
+# pylint: disable=wrong-import-position
+
 __version__ = '0.2.0rc1'
+
+import logging
 
 from .authentication_context import AuthenticationContext
 from .token_cache import TokenCache
@@ -35,7 +39,6 @@ from .log import (set_logging_options,
 from .adal_error import AdalError
 
 # to avoid "No handler found" warnings.
-import logging
 logging.getLogger(ADAL_LOGGER_NAME).addHandler(logging.NullHandler())
 
 

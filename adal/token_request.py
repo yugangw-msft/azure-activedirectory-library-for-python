@@ -45,7 +45,7 @@ OAUTH2_DEVICE_CODE_RESPONSE_PARAMETERS = constants.OAuth2.DeviceCodeResponsePara
 SAML = constants.Saml
 ACCOUNT_TYPE = constants.UserRealm.account_type
 USER_ID = constants.TokenResponseFields.USER_ID
-_CLIENT_ID = constants.TokenResponseFields._CLIENT_ID
+_CLIENT_ID = constants.TokenResponseFields._CLIENT_ID #pylint: disable=protected-access
 
 def add_parameter_if_available(parameters, key, value):
     if value:
@@ -217,7 +217,7 @@ class TokenRequest(object):
             try:
                 mex_instance.discover()
                 wstrust_endpoint = mex_instance.username_password_url
-            except Exception:
+            except Exception: #pylint: disable=broad-except
                 warn_template = ("MEX exchange failed for %s. " 
                                  "Attempting fallback to AAD supplied endpoint.")
                 self._log.warn(warn_template, mex_endpoint)

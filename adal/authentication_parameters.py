@@ -25,8 +25,11 @@
 #
 #------------------------------------------------------------------------------
 
-import requests
+#Note, this module does not appear being used anywhere
+
 import re
+
+import requests
 
 from . import util
 from . import log
@@ -38,6 +41,7 @@ AUTHORIZATION_URI = 'authorization_uri'
 RESOURCE = 'resource'
 WWW_AUTHENTICATE_HEADER = 'www-authenticate'
 
+# pylint: disable=anomalous-backslash-in-string,too-few-public-methods
 
 class AuthenticationParameters(object):
 
@@ -171,12 +175,12 @@ def create_authentication_parameters_from_url(url, correlation_id=None):
     options = util.create_request_options(_options())
     try:
         response = requests.get(challenge_url, headers=options['headers'])
-    except Exception as exp:
+    except Exception:
         logger.info("Authentication parameters http get failed.")
         raise
 
     try:
         return create_authentication_parameters_from_response(response)
-    except Exception as exp:
+    except Exception:
         logger.info("Unable to parse response in to authentication parameters.")
         raise

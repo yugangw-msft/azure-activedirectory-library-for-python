@@ -31,7 +31,7 @@ import base64
 try:
     from urllib.parse import urlparse
 except ImportError:
-    from urlparse import urlparse
+    from urlparse import urlparse #pylint: disable=import-error
 
 import adal
 
@@ -48,6 +48,7 @@ def add_default_request_headers(self, options):
     if not headers.get('Accept-Charset'):
         headers['Accept-Charset'] = 'utf-8'
 
+    #pylint: disable=protected-access
     headers['client-request-id'] = self._call_context['log_context']['correlation_id']
     headers['return-client-request-id'] = 'true'
 
@@ -64,6 +65,7 @@ def create_request_options(self, *options):
         for i in options:
             merged_options.update(i)
 
+    #pylint: disable=protected-access
     if self._call_context.get('options') and self._call_context['options'].get('http'):
         merged_options.update(self._call_context['options']['http'])
 

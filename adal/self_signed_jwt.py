@@ -28,10 +28,11 @@
 import time
 import datetime
 import uuid
-import jwt
 import base64
 import binascii
 import re
+
+import jwt
 
 from .constants import Jwt
 from .log import Logger

@@ -35,7 +35,7 @@ def validate_string_param(value, name):
 
     result = True
     if sys.version_info.major < 3:
-        result = isinstance(value, basestring)
+        result = isinstance(value, basestring) #pylint: disable=undefined-variable
     else:
         result = isinstance(value, str) 
 

@@ -30,7 +30,7 @@ import random
 try:
     from urllib.parse import urlparse
 except ImportError:
-    from urlparse import urlparse
+    from urlparse import urlparse # pylint: disable=import-error
 
 try:
     from xml.etree import cElementTree as ET

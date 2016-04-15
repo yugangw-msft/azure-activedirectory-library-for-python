@@ -29,8 +29,8 @@ try:
     from urllib.parse import quote
     from urllib.parse import urlparse
 except ImportError:
-    from urllib import quote
-    from urlparse import urlparse
+    from urllib import quote # pylint: disable=no-name-in-module
+    from urlparse import urlparse # pylint: disable=import-error
 
 import requests
 

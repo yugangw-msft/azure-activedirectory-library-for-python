@@ -30,8 +30,8 @@ try:
     from urllib.parse import quote, urlencode
     from urllib.parse import urlunparse
 except ImportError:
-    from urllib import quote, urlencode
-    from urlparse import urlunparse
+    from urllib import quote, urlencode #pylint: disable=no-name-in-module
+    from urlparse import urlunparse #pylint: disable=import-error
 
 import requests
 
