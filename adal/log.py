@@ -49,7 +49,6 @@ def set_logging_options(options=None):
         options = {}
     logger = logging.getLogger(ADAL_LOGGER_NAME)
 
-    int_level = LEVEL_PY_MAP[LOGGING_LEVEL.ERROR]
     level = options.get('level')
     if level:
         logger.setLevel(level)
@@ -69,10 +68,15 @@ def get_logging_options():
     '''
     logger = logging.getLogger(ADAL_LOGGER_NAME)
     level = logger.getEffectiveLevel()
-    return { 'level': logger.getLevelName(level) }
+    return { 
+        'level': logging.getLevelName(level) 
+        }
 
 class Logger(object):
-
+    '''
+    wrapper arund python built-in logging to log correlation_id, and stack
+    trace through keyword argument of 'log_stack_trace'
+    '''
     def __init__(self, component_name, log_context):
 
         if not log_context:
@@ -82,28 +86,31 @@ class Logger(object):
         self.log_context = log_context
         self._logging = logging.getLogger(ADAL_LOGGER_NAME)
 
-    def _log_message(self, level, message, log_stack_trace=False):
+    def _log_message(self, msg, **kwargs):
+        log_stack_trace = False
+        if 'log_stack_trace' in kwargs:
+            log_stack_trace = kwargs['log_stack_trace']
+            kwargs.pop('log_stack_trace')
 
         correlation_id = self.log_context.get("correlation_id", "<no correlation id>")
-
-        formatted = "{0} - {1}: {2} {3}".format(
+        
+        formatted = "{0} - {1}:{2}".format(
             correlation_id, 
-            self._component_name, 
-            logging.getLevelName(level), 
-            message)
+            self._component_name,
+            msg)
         if log_stack_trace:
             formatted += "\nStack:\n{0}".format(traceback.format_stack())
 
         return formatted
 
-    def warn(self, message, log_stack_trace=False):
-        message = self._log_message(logging.WARN, message, log_stack_trace)
-        self._logging.warning(message)
+    def warn(self, msg, *args, **kwargs):
+        msg = self._log_message(msg, **kwargs)
+        self._logging.warning(msg, *args, **kwargs)
 
-    def info(self, message, log_stack_trace=False):
-        message = self._log_message(logging.INFO, message, log_stack_trace)
-        self._logging.info(message)
+    def info(self, msg, *args, **kwargs):
+        msg = self._log_message(msg, **kwargs)
+        self._logging.info(msg, *args, **kwargs)
 
-    def debug(self, message, log_stack_trace=False):
-        message = self._log_message(logging.DEBUG, message, log_stack_trace)
-        self._logging.debug(message)
+    def debug(self, msg, *args, **kwargs):
+        msg = self._log_message(msg, **kwargs)
+        self._logging.debug(msg, *args, **kwargs)

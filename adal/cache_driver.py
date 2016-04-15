@@ -74,7 +74,7 @@ class CacheDriver(object):
         self._log.debug('Looking for potential cache entries:')
         self._log.debug(json.dumps(potential_entries_query))
         entries = self._cache.find(potential_entries_query)
-        self._log.debug('Found {} potential entries.'.format(len(entries)))
+        self._log.debug('Found %s potential entries.', len(entries))
         return entries
     
     def _find_mrrt_tokens_for_user(self, user):
@@ -113,8 +113,8 @@ class CacheDriver(object):
                 raise AdalError('More than one token matches the criteria. The result is ambiguous.')
 
         if return_val:
-            self._log.debug(
-                'Returning token from cache lookup, {}'.format(_create_token_id_message(return_val)))
+            self._log.debug('Returning token from cache lookup, %s',
+                            _create_token_id_message(return_val))
 
         return (return_val, is_resource_tenant_specific)
 
@@ -154,7 +154,7 @@ class CacheDriver(object):
         now_plus_buffer = now + timedelta(minutes=Misc.CLOCK_BUFFER)
 
         if is_resource_specific and now_plus_buffer > expiry_date:
-            self._log.info('Cached token is expired.  Refreshing: {}'.format(expiry_date))
+            self._log.info('Cached token is expired.  Refreshing: %s', expiry_date)
             return self._refresh_expired_entry(entry)
         elif (not is_resource_specific) and entry.get(TokenResponseFields.IS_MRRT):
             self._log.info('Acquiring new access token from MRRT token.')
@@ -165,7 +165,7 @@ class CacheDriver(object):
     def find(self, query):
         if query is None:
             query = {}
-        self._log.debug('finding with query: {}'.format(json.dumps(query)))
+        self._log.debug('finding with query: %s', json.dumps(query))
         entry, is_resource_tenant_specific = self._load_single_entry_from_cache(query)
         if entry:
             return self._refresh_entry_if_necessary(entry, is_resource_tenant_specific)
@@ -177,11 +177,11 @@ class CacheDriver(object):
         self._cache.remove([entry])
 
     def _remove_many(self, entries):
-        self._log.debug('Remove many:{}'.format(len(entries)))
+        self._log.debug('Remove many:%s', len(entries))
         self._cache.remove(entries)
 
     def _add_many(self, entries):
-        self._log.debug('Add many:{}'.format(len(entries)))
+        self._log.debug('Add many: %s', len(entries))
         self._cache.add(entries)
 
     @staticmethod
@@ -192,7 +192,7 @@ class CacheDriver(object):
         if CacheDriver._is_mrrt(entry) and entry.get(TokenResponseFields.REFRESH_TOKEN):
             mrrt_tokens = self._find_mrrt_tokens_for_user(entry.get(TokenResponseFields.USER_ID))
             if mrrt_tokens:
-                self._log.debug('Updating {} cached refresh tokens'.format(len(mrrt_tokens)))
+                self._log.debug('Updating %s cached refresh tokens', len(mrrt_tokens))
                 self._remove_many(mrrt_tokens)
                
                 for t in mrrt_tokens:
@@ -218,7 +218,7 @@ class CacheDriver(object):
         entry[TokenResponseFields._AUTHORITY] = self._authority
 
     def add(self, entry):
-        self._log.debug('Adding entry, ' + _create_token_id_message(entry))
+        self._log.debug('Adding entry %s', _create_token_id_message(entry))
         self._argument_entry_with_cached_metadata(entry)
         self._update_refresh_tokens(entry)
         self._cache.add([entry])

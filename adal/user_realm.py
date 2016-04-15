@@ -92,14 +92,14 @@ class UserRealm(object):
     def _log_parsed_response(self):
 
         self._log.debug('UserRealm response:')
-        self._log.debug(' AccountType:             {0}'.format(self.account_type))
-        self._log.debug(' FederationProtocol:      {0}'.format(self.federation_protocol))
-        self._log.debug(' FederationMetatdataUrl:  {0}'.format(self.federation_metadata_url))
-        self._log.debug(' FederationActiveAuthUrl: {0}'.format(self.federation_active_auth_url))
+        self._log.debug(' AccountType:             %s', self.account_type)
+        self._log.debug(' FederationProtocol:      %s', self.federation_protocol)
+        self._log.debug(' FederationMetatdataUrl:  %s', self.federation_metadata_url)
+        self._log.debug(' FederationActiveAuthUrl: %s', self.federation_active_auth_url)
 
     def _parse_discovery_response(self, body):
 
-        self._log.debug("Discovery response:\n{0}".format(body))
+        self._log.debug("Discovery response:\n %s", body)
 
         try:
             response = json.loads(body)
@@ -130,7 +130,8 @@ class UserRealm(object):
 
         options = util.create_request_options(self, {'headers': {'Accept':'application/json'}})
         user_realm_url = self._get_user_realm_url()
-        self._log.debug("Performing user realm discovery at: {0}".format(user_realm_url.geturl()))
+        self._log.debug("Performing user realm discovery at: %s",
+                        user_realm_url.geturl())
 
         operation = 'User Realm Discovery'
         resp = requests.get(user_realm_url.geturl(), headers=options['headers'])

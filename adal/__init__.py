@@ -25,7 +25,7 @@
 #
 #------------------------------------------------------------------------------
 
-__version__ = '1.0.0rc1'
+__version__ = '0.2.0rc1'
 
 from .authentication_context import AuthenticationContext
 from .token_cache import TokenCache

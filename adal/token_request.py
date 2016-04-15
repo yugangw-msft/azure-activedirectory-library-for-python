@@ -211,16 +211,16 @@ class TokenRequest(object):
                 password)
         else:
             mex_endpoint = self._user_realm.federation_metadata_url
-            self._log.debug("Attempting mex at: {0}".format(mex_endpoint))
+            self._log.debug("Attempting mex at: %s", mex_endpoint)
             mex_instance = self._create_mex(mex_endpoint)
              
             try:
                 mex_instance.discover()
                 wstrust_endpoint = mex_instance.username_password_url
             except Exception:
-                warn_template = ("MEX exchange failed for {}. " 
+                warn_template = ("MEX exchange failed for %s. " 
                                  "Attempting fallback to AAD supplied endpoint.")
-                self._log.warn(warn_template.format(mex_endpoint))
+                self._log.warn(warn_template, mex_endpoint)
                 wstrust_endpoint = self._user_realm.federation_active_auth_url
                 if not wstrust_endpoint:
                     raise AdalError('AAD did not return a WSTrust endpoint. Unable to proceed.')
@@ -235,7 +235,10 @@ class TokenRequest(object):
             if token:
                 return token
         except AdalError as exp:
-            self._log.warn('Attempt to look for token in cache resulted in Error: {}'.format(exp), True)
+            self._log.warn(
+                'Attempt to look for token in cache resulted in Error: %s', 
+                exp,
+                log_stack_trace=True)
  
         self._user_realm = self._create_user_realm_request(username)
         self._user_realm.discover()
@@ -263,7 +266,10 @@ class TokenRequest(object):
             if token:
                 return token
         except AdalError as exp:
-            self._log.warn('Attempt to look for token in cache resulted in Error: {}'.format(exp), True)
+            self._log.warn(
+                'Attempt to look for token in cache resulted in Error: %s', 
+                exp, 
+                log_stack_trace=True)
 
         oauth_parameters = self._create_oauth_parameters(OAUTH2_GRANT_TYPE.CLIENT_CREDENTIALS)
         oauth_parameters[OAUTH2_PARAMETERS.CLIENT_SECRET] = client_secret
@@ -329,7 +335,10 @@ class TokenRequest(object):
             if token:
                 return token
         except AdalError as exp: 
-            self._log.warn('Attempt to look for token in cache resulted in Error: {}'.format(exp), True)
+            self._log.warn(
+                'Attempt to look for token in cache resulted in Error: %s', 
+                exp, 
+                log_stack_trace=True)
         
         return self._oauth_get_token(oauth_parameters)
 
