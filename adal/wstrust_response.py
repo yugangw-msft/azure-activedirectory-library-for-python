@@ -29,10 +29,31 @@ try:
     from xml.etree import cElementTree as ET
 except ImportError:
     from xml.etree import ElementTree as ET
+import re
 
 from . import xmlutil
 from . import log
 from .adal_error import AdalError
+
+
+# Creates a log message that contains the RSTR scrubbed of the actual SAML assertion.
+def scrub_rstr_log_message(response_str):
+    # A regular expression for finding the SAML Assertion in an response_str.  Used to remove the SAML
+    # assertion when logging the response_str.
+    assertion_regex = r'RequestedSecurityToken.*?((<.*?:Assertion.*?>).*<\/.*?Assertion>).*?'
+    single_line_rstr, _ = re.subn(r'(\r\n|\n|\r)', '', response_str)
+
+    match = re.search(assertion_regex, single_line_rstr)
+    if not match:
+        #No Assertion was matched so just return the response_str as is.
+        scrubbed_rstr = single_line_rstr
+    else:
+        saml_assertion = match.group(1)
+        saml_assertion_start_tag = match.group(2)
+        scrubbed_rstr = single_line_rstr.replace(
+            saml_assertion, saml_assertion_start_tag + 'ASSERTION CONTENTS REDACTED</saml:Assertion>')
+
+    return 'RSTR Response: ' + scrubbed_rstr
 
 class WSTrustResponse(object):
 
@@ -48,7 +69,7 @@ class WSTrustResponse(object):
         self.token_type = None
         self.token = None
 
-        self._log.debug("RSTR Response: %s", self._response)
+        self._log.debug(scrub_rstr_log_message(response))
 
     # Sample error message
     #<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://www.w3.org/2005/08/addressing" xmlns:u="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">
