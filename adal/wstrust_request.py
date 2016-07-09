@@ -70,7 +70,12 @@ class WSTrustRequest(object):
 
     @staticmethod
     def _populate_rst_username_password(template, username, password):
+        password = WSTrustRequest._escape_password(password)
         return template.replace(_USERNAME_PLACEHOLDER, username).replace(_PASSWORD_PLACEHOLDER, password)
+
+    @staticmethod
+    def _escape_password(password):
+        return password.replace('&', '&amp;').replace('"', '&quot;').replace("'", '&apos;').replace('<', '&lt;').replace('>', '&gt;')
 
     def _build_rst(self, username, password):
 
