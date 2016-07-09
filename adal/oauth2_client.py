@@ -86,8 +86,8 @@ def _get_user_id(id_token):
     elif id_token.get('email'):
         user_id = id_token['email']
         is_displayable = True
-    elif id_token.get('subject'):
-        user_id = id_token['subject']
+    elif id_token.get('sub'):
+        user_id = id_token['sub']
 
     if not user_id:
         user_id = str(uuid.uuid4())
