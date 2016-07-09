@@ -69,7 +69,8 @@ class WSTrustResponse(object):
         self.token_type = None
         self.token = None
 
-        self._log.debug(scrub_rstr_log_message(response))
+        if response:
+            self._log.debug(scrub_rstr_log_message(response))
 
     # Sample error message
     #<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://www.w3.org/2005/08/addressing" xmlns:u="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">
