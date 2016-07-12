@@ -273,11 +273,16 @@ class TokenRequest(object):
                 exp,
                 log_stack_trace=True)
  
-        self._user_realm = self._create_user_realm_request(username)
-        self._user_realm.discover()
+        is_adfs = self._authentication_context.authority.is_adfs_authority
+        if is_adfs:
+            self._log.info('Skipping user realm discovery for ADFS authority')
+
+        if not is_adfs:
+            self._user_realm = self._create_user_realm_request(username)
+            self._user_realm.discover()
 
         try:
-            if self._user_realm.account_type == ACCOUNT_TYPE['Managed']:
+            if self._user_realm.account_type == ACCOUNT_TYPE['Managed'] or is_adfs:
                 token = self._get_token_username_password_managed(username, password)
             elif self._user_realm.account_type == ACCOUNT_TYPE['Federated']:
                 token = self._get_token_username_password_federated(username, password)
