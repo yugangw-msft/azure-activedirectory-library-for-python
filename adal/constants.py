@@ -103,7 +103,9 @@ class OAuth2(object):
         'tid' : 'tenantId',
         'given_name' : 'givenName',
         'family_name' : 'familyName',
-        'idp' : 'identityProvider'}
+        'idp' : 'identityProvider',
+        'oid' : 'oid'
+        }
 
 
 class TokenResponseFields(object):

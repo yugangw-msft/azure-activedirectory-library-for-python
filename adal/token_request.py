@@ -241,6 +241,8 @@ class TokenRequest(object):
                                  "Attempting fallback to AAD supplied endpoint.")
                 self._log.warn(warn_template, mex_endpoint)
                 wstrust_endpoint = self._user_realm.federation_active_auth_url
+                wstrust_version = TokenRequest._parse_wstrust_version_from_federation_active_authurl(
+                    self._user_realm.federation_active_auth_url)
                 if not wstrust_endpoint:
                     raise AdalError('AAD did not return a WSTrust endpoint. Unable to proceed.')
 
