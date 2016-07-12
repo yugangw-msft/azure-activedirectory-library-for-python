@@ -64,8 +64,9 @@ class Test_Mex(unittest.TestCase):
 
         try:
             mex.discover()
-            self.assertEqual(mex.username_password_url, expectedUrl,
-            'returned url did not match: ' + expectedUrl + ': ' + mex.username_password_url)
+            url = mex.username_password_policy['url']
+            self.assertEqual(url, expectedUrl,
+            'returned url did not match: ' + expectedUrl + ': ' + url)
         except Exception as exp:
             self.assertFalse(exp)
 

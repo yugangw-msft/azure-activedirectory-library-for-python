@@ -34,17 +34,19 @@ from . import log
 from . import util
 from . import wstrust_response
 from .adal_error import AdalError 
+from .constants import WSTrustVersion
 
 _USERNAME_PLACEHOLDER = '{UsernamePlaceHolder}'
 _PASSWORD_PLACEHOLDER = '{PasswordPlaceHolder}' 
 
 class WSTrustRequest(object):
 
-    def __init__(self, call_context, watrust_endpoint_url, applies_to):
+    def __init__(self, call_context, watrust_endpoint_url, applies_to, wstrust_endpoint_version):
         self._log = log.Logger('WSTrustRequest', call_context['log_context'])
         self._call_context = call_context
         self._wstrust_endpoint_url = watrust_endpoint_url
         self._applies_to = applies_to
+        self._wstrust_endpoint_version = wstrust_endpoint_version
         
     @staticmethod
     def _build_security_header():
@@ -78,44 +80,64 @@ class WSTrustRequest(object):
         return password.replace('&', '&amp;').replace('"', '&quot;').replace("'", '&apos;').replace('<', '&lt;').replace('>', '&gt;')
 
     def _build_rst(self, username, password):
-
         message_id = str(uuid.uuid4())
-        rst_template = "<s:Envelope xmlns:s=\'http://www.w3.org/2003/05/soap-envelope\' xmlns:wsa=\'http://www.w3.org/2005/08/addressing\' xmlns:wsu=\'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd\'>\
-          <s:Header>\
-            <wsa:Action s:mustUnderstand=\'1\'>http://docs.oasis-open.org/ws-sx/ws-trust/200512/RST/Issue</wsa:Action>\
-            <wsa:messageID>urn:uuid:{}</wsa:messageID>\
-            <wsa:ReplyTo>\
-              <wsa:Address>http://www.w3.org/2005/08/addressing/anonymous</wsa:Address>\
-            </wsa:ReplyTo>\
-            <wsa:To s:mustUnderstand=\'1\'>{}</wsa:To>\
-            {}\
-          </s:Header>\
-          <s:Body>\
-            <wst:RequestSecurityToken xmlns:wst=\'http://docs.oasis-open.org/ws-sx/ws-trust/200512\'>\
-              <wsp:AppliesTo xmlns:wsp=\'http://schemas.xmlsoap.org/ws/2004/09/policy\'>\
-                <wsa:EndpointReference>\
-                  <wsa:Address>{}</wsa:Address>\
-                </wsa:EndpointReference>\
-              </wsp:AppliesTo>\
-              <wst:KeyType>http://docs.oasis-open.org/ws-sx/ws-trust/200512/Bearer</wst:KeyType>\
-              <wst:RequestType>http://docs.oasis-open.org/ws-sx/ws-trust/200512/Issue</wst:RequestType>\
-            </wst:RequestSecurityToken>\
-          </s:Body>\
-        </s:Envelope>".format(message_id, self._wstrust_endpoint_url, WSTrustRequest._build_security_header(), self._applies_to)
+
+        schema_location = 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd'
+        soap_action = 'http://docs.oasis-open.org/ws-sx/ws-trust/200512/RST/Issue'
+        rst_trust_namespace = 'http://docs.oasis-open.org/ws-sx/ws-trust/200512'
+        key_type = 'http://docs.oasis-open.org/ws-sx/ws-trust/200512/Bearer'
+        request_type = 'http://docs.oasis-open.org/ws-sx/ws-trust/200512/Issue'
+ 
+        if self._wstrust_endpoint_version == WSTrustVersion.WSTRUST2005:
+            soap_action = 'http://schemas.xmlsoap.org/ws/2005/02/trust/RST/Issue'
+            rst_trust_namespace = 'http://schemas.xmlsoap.org/ws/2005/02/trust'
+            key_type = 'http://schemas.xmlsoap.org/ws/2005/05/identity/NoProofKey'
+            request_type = 'http://schemas.xmlsoap.org/ws/2005/02/trust/Issue'
+   
+        rst_template = ("<s:Envelope xmlns:s='http://www.w3.org/2003/05/soap-envelope' xmlns:wsa='http://www.w3.org/2005/08/addressing' xmlns:wsu='{}'>".format(schema_location) +
+                        "<s:Header>" + 
+                        "<wsa:Action s:mustUnderstand='1'>{}</wsa:Action>".format(soap_action) +
+                        "<wsa:messageID>urn:uuid:{}</wsa:messageID>".format(message_id) +
+                        "<wsa:ReplyTo>" +
+                        "<wsa:Address>http://www.w3.org/2005/08/addressing/anonymous</wsa:Address>" +
+                        "</wsa:ReplyTo>" +
+                        "<wsa:To s:mustUnderstand='1'>{}</wsa:To>".format(self._wstrust_endpoint_url) +
+                        WSTrustRequest._build_security_header() +
+                        "</s:Header>" +
+                        "<s:Body>" +
+                        "<wst:RequestSecurityToken xmlns:wst='{}'>".format(rst_trust_namespace) +
+                        "<wsp:AppliesTo xmlns:wsp='http://schemas.xmlsoap.org/ws/2004/09/policy'>" + 
+                        "<wsa:EndpointReference>" +
+                        "<wsa:Address>{}</wsa:Address>".format(self._applies_to) +
+                        "</wsa:EndpointReference>" +
+                        "</wsp:AppliesTo>" +
+                        "<wst:KeyType>{}</wst:KeyType>".format(key_type) +
+                        "<wst:RequestType>{}</wst:RequestType>".format(request_type) +
+                        "</wst:RequestSecurityToken>" +
+                        "</s:Body>" +
+                        "</s:Envelope>")
 
         self._log.debug('Created RST: \n' + rst_template)
         return WSTrustRequest._populate_rst_username_password(rst_template, username, password)
 
     def _handle_rstr(self, body):
-        wstrust_resp = wstrust_response.WSTrustResponse(self._call_context, body)
+        wstrust_resp = wstrust_response.WSTrustResponse(self._call_context, body, self._wstrust_endpoint_version)
         wstrust_resp.parse()
         return wstrust_resp
 
     def acquire_token(self, username, password):
+        if self._wstrust_endpoint_version == WSTrustVersion.UNDEFINED:
+            raise AdalError('Unsupported wstrust endpoint version. Current support version is wstrust2005 or wstrust13.')
 
         rst = self._build_rst(username, password)
+        if self._wstrust_endpoint_version == WSTrustVersion.WSTRUST2005:
+            soap_action = 'http://schemas.xmlsoap.org/ws/2005/02/trust/RST/Issue'
+        else:
+            soap_action = 'http://docs.oasis-open.org/ws-sx/ws-trust/200512/RST/Issue'
+
+
         headers = {'headers': {'Content-type':'application/soap+xml; charset=utf-8',
-                               'SOAPAction': 'http://docs.oasis-open.org/ws-sx/ws-trust/200512/RST/Issue'},
+                               'SOAPAction': soap_action},
                    'body': rst}
         options = util.create_request_options(self, headers)
         self._log.debug("Sending RST to: %s", self._wstrust_endpoint_url)

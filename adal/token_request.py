@@ -26,6 +26,7 @@
 #------------------------------------------------------------------------------
 
 from base64 import b64encode
+import re
 
 from . import constants
 from . import log
@@ -36,6 +37,7 @@ from . import user_realm
 from . import wstrust_request
 from .adal_error import AdalError
 from .cache_driver import CacheDriver
+from .constants import WSTrustVersion
 
 OAUTH2_PARAMETERS = constants.OAuth2.Parameters
 TOKEN_RESPONSE_FIELDS = constants.TokenResponseFields
@@ -93,9 +95,9 @@ class TokenRequest(object):
     def _create_mex(self, mex_endpoint):
         return mex.Mex(self._call_context, mex_endpoint)
 
-    def _create_wstrust_request(self, wstrust_endpoint, applies_to):
-        return wstrust_request.WSTrustRequest(self._call_context, 
-                                              wstrust_endpoint, applies_to)
+    def _create_wstrust_request(self, wstrust_endpoint, applies_to, wstrust_endpoint_version):
+        return wstrust_request.WSTrustRequest(self._call_context, wstrust_endpoint,
+                                              applies_to, wstrust_endpoint_version)
 
     def _create_oauth2_client(self):
         return oauth2_client.OAuth2Client(self._call_context, 
@@ -186,10 +188,10 @@ class TokenRequest(object):
 
         return self._oauth_get_token(oauth_parameters)
 
-    def _perform_wstrust_exchange(self, wstrust_endpoint, username, password):
-        wstrust = self._create_wstrust_request(wstrust_endpoint, 
-                                               "urn:federation:MicrosoftOnline")
+    def _perform_wstrust_exchange(self, wstrust_endpoint, wstrust_endpoint_version, username, password):
 
+        wstrust = self._create_wstrust_request(wstrust_endpoint, "urn:federation:MicrosoftOnline",
+                                               wstrust_endpoint_version)
         try:
             return wstrust.acquire_token(username, password)
         except AdalError as exp:
@@ -201,11 +203,9 @@ class TokenRequest(object):
             self._log.info(error_msg)
             raise
 
-    def _perform_username_password_for_access_token_exchange(self, 
-                                                             wstrust_endpoint, 
-                                                             username, 
-                                                             password):
-        wstrust_response = self._perform_wstrust_exchange(wstrust_endpoint, 
+    def _perform_username_password_for_access_token_exchange(self, wstrust_endpoint, wstrust_endpoint_version,
+                                                             username, password):
+        wstrust_response = self._perform_wstrust_exchange(wstrust_endpoint, wstrust_endpoint_version,
                                                           username, password)
         return self._perform_wstrust_assertion_oauth_exchange(wstrust_response)
 
@@ -219,18 +219,23 @@ class TokenRequest(object):
             if not self._user_realm.federation_active_auth_url:
                 raise AdalError('AAD did not return a WSTrust endpoint. Unable to proceed.')
 
+            wstrust_version = TokenRequest._parse_wstrust_version_from_federation_active_authurl(
+                self._user_realm.federation_active_auth_url)
+            self._log.debug('wstrust endpoint version is: %s', wstrust_version)
+
             return self._perform_username_password_for_access_token_exchange(
-                self._user_realm.federation_active_auth_url, 
-                username, 
-                password)
+                self._user_realm.federation_active_auth_url,
+                wstrust_version, username, password)
         else:
             mex_endpoint = self._user_realm.federation_metadata_url
             self._log.debug("Attempting mex at: %s", mex_endpoint)
             mex_instance = self._create_mex(mex_endpoint)
+            wstrust_version = WSTrustVersion.UNDEFINED
              
             try:
                 mex_instance.discover()
-                wstrust_endpoint = mex_instance.username_password_url
+                wstrust_endpoint = mex_instance.username_password_policy['url']
+                wstrust_version = mex_instance.username_password_policy['version']
             except Exception: #pylint: disable=broad-except
                 warn_template = ("MEX exchange failed for %s. " 
                                  "Attempting fallback to AAD supplied endpoint.")
@@ -239,8 +244,19 @@ class TokenRequest(object):
                 if not wstrust_endpoint:
                     raise AdalError('AAD did not return a WSTrust endpoint. Unable to proceed.')
 
-            return self._perform_username_password_for_access_token_exchange(wstrust_endpoint,
+            return self._perform_username_password_for_access_token_exchange(wstrust_endpoint, wstrust_version,
                                                                              username, password)
+    @staticmethod
+    def _parse_wstrust_version_from_federation_active_authurl(federation_active_authurl):
+        wstrust2005_regex = r'[/trust]?[2005][/usernamemixed]?'
+        wstrust13_regex = r'[/trust]?[13][/usernamemixed]?'
+
+        if re.search(wstrust2005_regex, federation_active_authurl):
+            return WSTrustVersion.WSTRUST2005
+        elif re.search(wstrust13_regex, federation_active_authurl):
+            return WSTrustVersion.WSTRUST13
+
+        return WSTrustVersion.UNDEFINED
 
     def get_token_with_username_password(self, username, password):
         self._log.info("Acquiring token with username password.")

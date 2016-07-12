@@ -34,7 +34,7 @@ import re
 from . import xmlutil
 from . import log
 from .adal_error import AdalError
-
+from .constants import WSTrustVersion
 
 # Creates a log message that contains the RSTR scrubbed of the actual SAML assertion.
 def scrub_rstr_log_message(response_str):
@@ -57,7 +57,7 @@ def scrub_rstr_log_message(response_str):
 
 class WSTrustResponse(object):
 
-    def __init__(self, call_context, response):
+    def __init__(self, call_context, response, wstrust_version):
 
         self._log = log.Logger("WSTrustResponse", call_context['log_context'])
         self._call_context = call_context
@@ -68,6 +68,7 @@ class WSTrustResponse(object):
         self.fault_message = None
         self.token_type = None
         self.token = None
+        self._wstrust_version = wstrust_version
 
         if response:
             self._log.debug(scrub_rstr_log_message(response))
@@ -124,7 +125,14 @@ class WSTrustResponse(object):
         return error_found
 
     def _parse_token(self):
-        token_type_nodes = xmlutil.xpath_find(self._dom, 's:Body/wst:RequestSecurityTokenResponseCollection/wst:RequestSecurityTokenResponse/wst:TokenType')
+        if self._wstrust_version == WSTrustVersion.WSTRUST2005:
+            token_type_nodes_xpath = 's:Body/t:RequestSecurityTokenResponse/t:TokenType'
+            security_token_xpath = 't:RequestedSecurityToken'
+        else:
+            token_type_nodes_xpath = 's:Body/wst:RequestSecurityTokenResponseCollection/wst:RequestSecurityTokenResponse/wst:TokenType'
+            security_token_xpath = 'wst:RequestedSecurityToken'
+
+        token_type_nodes = xmlutil.xpath_find(self._dom, token_type_nodes_xpath)
         if not token_type_nodes:
             raise AdalError("No TokenType nodes found in RSTR")
 
@@ -137,7 +145,7 @@ class WSTrustResponse(object):
             if not token_type:
                 self._log.warn("Could not find token type in RSTR token.")
 
-            requested_token_node = xmlutil.xpath_find(self._parents[node], 'wst:RequestedSecurityToken')
+            requested_token_node = xmlutil.xpath_find(self._parents[node], security_token_xpath)
             if len(requested_token_node) > 1:
                 raise AdalError("Found too many RequestedSecurityToken nodes for token type: {}".format(token_type))
 
@@ -173,12 +181,11 @@ class WSTrustResponse(object):
             raise AdalError("Received empty RSTR response body.")
 
         try:
-
-            try:
-                self._dom = ET.fromstring(self._response)
-            except Exception as exp:
-                raise AdalError('Failed to parse RSTR in to DOM', exp)
-
+            self._dom = ET.fromstring(self._response)
+        except Exception as exp:
+            raise AdalError('Failed to parse RSTR in to DOM', exp)        
+        
+        try:
             self._parents = {c:p for p in self._dom.iter() for c in p}
             error_found = self._parse_error()
             if error_found:
@@ -188,7 +195,6 @@ class WSTrustResponse(object):
                 raise AdalError(error_template.format(str_error_code, str_fault_message))
             self._parse_token()
         finally:
-            self._log.info("Failed to parse RSTR in to DOM")
             self._dom = None
             self._parents = None
 
