@@ -182,7 +182,12 @@ class TokenRequest(object):
 
         oauth_parameters = {}
         grant_type = _get_saml_grant_type(wstrust_response)
-        assertion = b64encode(wstrust_response.token)
+        
+        bytes = wstrust_response.token
+        if hasattr(bytes, 'encode'):#TODO: confirm the '.token' is string always
+            bytes = bytes.encode()
+        assertion = b64encode(bytes)
+
         oauth_parameters = self._create_oauth_parameters(grant_type)
         oauth_parameters[OAUTH2_PARAMETERS.ASSERTION] = assertion
 
@@ -192,16 +197,15 @@ class TokenRequest(object):
 
         wstrust = self._create_wstrust_request(wstrust_endpoint, "urn:federation:MicrosoftOnline",
                                                wstrust_endpoint_version)
-        try:
-            return wstrust.acquire_token(username, password)
-        except AdalError as exp:
-            error_msg = str(exp)
-            if exp.error_response:
-                err_template = "Unsuccessful RSTR.\n\terror code: {}\n\tfaultMessage: {}"
-                error_msg = (err_template.format(exp.error_response.error_code, 
-                                                 exp.error_response.fault_message))
+        result =  wstrust.acquire_token(username, password)
+
+        if not result.token:
+            err_template = "Unsuccessful RSTR.\n\terror code: {}\n\tfaultMessage: {}"
+            error_msg = err_template.format(result.error_code, result.fault_message)
             self._log.info(error_msg)
-            raise
+            raise AdalError(error_msg)
+
+        return result
 
     def _perform_username_password_for_access_token_exchange(self, wstrust_endpoint, wstrust_endpoint_version,
                                                              username, password):
@@ -273,27 +277,26 @@ class TokenRequest(object):
                 exp,
                 log_stack_trace=True)
  
-        is_adfs = self._authentication_context.authority.is_adfs_authority
-        if is_adfs:
-            self._log.info('Skipping user realm discovery for ADFS authority')
-
-        if not is_adfs:
+        if not self._authentication_context.authority.is_adfs_authority:
             self._user_realm = self._create_user_realm_request(username)
             self._user_realm.discover()
 
-        try:
-            if self._user_realm.account_type == ACCOUNT_TYPE['Managed'] or is_adfs:
-                token = self._get_token_username_password_managed(username, password)
-            elif self._user_realm.account_type == ACCOUNT_TYPE['Federated']:
-                token = self._get_token_username_password_federated(username, password)
-            else:
-                raise AdalError(
-                    "Server returned an unknown AccountType: {}".format(self._user_realm.account_type))
-            self._log.debug("Successfully retrieved token from authority.")
-        except Exception:
-            self._log.info("get_token_func returned with error")
-            raise
-        
+            try:
+                if self._user_realm.account_type == ACCOUNT_TYPE['Managed']:
+                    token = self._get_token_username_password_managed(username, password)
+                elif self._user_realm.account_type == ACCOUNT_TYPE['Federated']:
+                    token = self._get_token_username_password_federated(username, password)
+                else:
+                    raise AdalError(
+                        "Server returned an unknown AccountType: {}".format(self._user_realm.account_type))
+                self._log.debug("Successfully retrieved token from authority.")
+            except Exception:
+                self._log.info("get_token_func returned with error")
+                raise
+        else:
+            self._log.info('Skipping user realm discovery for ADFS authority')
+            token = self._get_token_username_password_managed(username, password)
+       
         self._cache_driver.add(token)
         return token
 

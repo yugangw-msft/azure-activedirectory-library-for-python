@@ -28,6 +28,7 @@
 import unittest
 import json
 import httpretty
+import responses
 import six
 
 import adal
@@ -45,7 +46,7 @@ class TestClientCredentials(unittest.TestCase):
         util.reset_logging()
         util.clear_static_cache()
 
-    @httpretty.activate
+    @responses.activate
     def test_happy_path(self):
         response_options = { 'noRefresh' : True, 'tokenEndpoint': True }
         response = util.create_response(response_options)
@@ -59,7 +60,7 @@ class TestClientCredentials(unittest.TestCase):
             'The response does not match what was expected.: ' + str(token_response)
         )
 
-    @httpretty.activate
+    @responses.activate
     def test_http_error(self):
         tokenRequest = util.setup_expected_client_cred_token_request_response(403)
 
@@ -68,7 +69,7 @@ class TestClientCredentials(unittest.TestCase):
             token_response = context.acquire_token_with_client_credentials(
                  cp['resource'], cp['clientId'], cp['clientSecret'])
 
-    @httpretty.activate
+    @responses.activate
     def test_oauth_error(self):
         errorResponse = {
           'error' : 'invalid_client',
