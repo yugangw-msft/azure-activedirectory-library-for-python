@@ -108,7 +108,7 @@ class CacheDriver(object):
                 self._log.debug('No resource specific cache entries found.')
 
                 #There are no resource specific entries. Find an MRRT token.
-                mrrt_tokens = (x for x in potential_entries if x[TokenResponseFields.IS_MRRT])
+                mrrt_tokens = (x for x in potential_entries if x.get(TokenResponseFields.IS_MRRT))
                 token = next(mrrt_tokens, None)
                 if token:
                     self._log.debug('Found an MRRT token.')
@@ -132,7 +132,7 @@ class CacheDriver(object):
         new_entry = copy.deepcopy(entry)
         new_entry.update(refresh_response)
 
-        if entry[TokenResponseFields.IS_MRRT] and self._authority != entry[TokenResponseFields._AUTHORITY]:
+        if entry.get(TokenResponseFields.IS_MRRT) and self._authority != entry[TokenResponseFields._AUTHORITY]:
             new_entry[TokenResponseFields._AUTHORITY] = self._authority
 
         self._log.debug('Created new cache entry from refresh response.')
